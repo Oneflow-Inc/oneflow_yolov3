@@ -44,7 +44,7 @@ label_2_name=[]
 with open(args.label_to_name_file,'r') as f:
   label_2_name=f.readlines()
 
-nms=False
+nms=True
 
 print("nms:", nms)
 def print_detect_box(positions, probs):

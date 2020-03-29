@@ -8,12 +8,9 @@ Yolov3 in OneFlow
 bash scripts/test.sh
 ```
 ## Run Yolov3 inference
+1. download model to root directory of this project
+链接:https://pan.baidu.com/s/16nSqnISE7U6vhcGAKaB0Rw  密码:1vhh
+2. run
 ```
 ./yolo_predict.sh
-```
-## use Tensorrt
-1. download TensorRT-6.0.1.5
-2. build oneflow WITH_TENSORRT
-```
-cmake -DWITH_TENSORRT=ON -DTENSORRT_ROOT=$tensorrt_dir -DTHIRD_PARTY=ON ..
 ```
