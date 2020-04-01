@@ -3,14 +3,15 @@ Yolov3 in OneFlow
 
 ## For development
 1. clone this repo
-2. in root directory of this project, run:
+2. 需确认在当前为python3环境，且可以`import oneflow`成功
+3. 在项目root目录下，执行:
 ```
 bash scripts/test.sh
 ```
 ## Run Yolov3 inference
-1. download model to root directory of this project  
+1. 下载模型到项目root目录下，解压  
 链接:https://pan.baidu.com/s/16nSqnISE7U6vhcGAKaB0Rw  密码:1vhh
-2. run
+2. 运行
 ```
 ./yolo_predict.sh
 ```
