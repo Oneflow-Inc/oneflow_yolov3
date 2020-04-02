@@ -1,8 +1,8 @@
 import oneflow as flow
 import oneflow.core.operator.op_conf_pb2 as op_conf_util
-from yolov3.ops.upsample_nearest import upsample_nearest
-from yolov3.ops.yolo_detect import yolo_detect
-from yolov3.ops.yolo_nms import yolo_nms
+from oneflow_yolov3.ops.upsample_nearest import upsample_nearest
+from oneflow_yolov3.ops.yolo_detect import yolo_detect
+from oneflow_yolov3.ops.yolo_nms import yolo_nms
 layer_number = 1
 route_dict = {}
 yolo_pos_result=[]

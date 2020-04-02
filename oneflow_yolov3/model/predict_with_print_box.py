@@ -5,8 +5,8 @@ import argparse
 import numpy as np
 import os
 from yolo_net import YoloPredictNet
-import yolov3
-from yolov3.ops.yolo_decode import yolo_predict_decoder
+import oneflow_yolov3
+from oneflow_yolov3.ops.yolo_decode import yolo_predict_decoder
 
 parser = argparse.ArgumentParser(description="flags for predict")
 parser.add_argument("-g", "--gpu_num_per_node", type=int, default=1, required=False)
@@ -31,7 +31,7 @@ with open(args.image_list_path, 'r') as f:
     assert os.path.exists(image_paths.splitlines()[0])
 
 
-flow.config.load_library(yolov3.lib_path())
+flow.config.load_library(oneflow_yolov3.lib_path())
 func_config = flow.FunctionConfig()
 func_config.default_distribute_strategy(flow.distribute.consistent_strategy())
 func_config.default_data_type(flow.float)

@@ -33,7 +33,7 @@ list(APPEND SRC ${CUDASRC})
 list(APPEND SRC ${CUDAHDR})
 
 cuda_add_library(${PROJECT_NAME} SHARED ${SRC})
-set_target_properties(${PROJECT_NAME} PROPERTIES LIBRARY_OUTPUT_DIRECTORY ../../yolov3)
+set_target_properties(${PROJECT_NAME} PROPERTIES LIBRARY_OUTPUT_DIRECTORY ../../oneflow_yolov3)
 target_include_directories(${PROJECT_NAME} PUBLIC ${ONEFLOW_INCLUDE_PATH})
 target_link_libraries(${PROJECT_NAME} ${ONEFLOW_LIB_PATH}/_oneflow_internal.so)
 
