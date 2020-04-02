@@ -3,4 +3,3 @@ log
 of_model
 dist
 *.egg-info
-*.so

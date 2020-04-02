@@ -38,7 +38,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC ${ONEFLOW_INCLUDE_PATH})
 target_link_libraries(${PROJECT_NAME} ${ONEFLOW_LIB_PATH}/_oneflow_internal.so)
 
 target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_SOURCE_DIR}/ops/darknet_dependencies/include)
-target_link_libraries(${PROJECT_NAME} ${CMAKE_SOURCE_DIR}/ops/darknet_dependencies/libdarknet.so)
+target_link_libraries(${PROJECT_NAME} ${CMAKE_SOURCE_DIR}/oneflow_yolov3/libdarknet.so)
 
 
 export(PACKAGE ${PROJECT_NAME})
