@@ -61,6 +61,40 @@ def print_detect_box(positions, probs):
                 if positions[0][j][1]!=0 and positions[0][j][2]!=0 and probs[0][j][i]!=0:
                     print(label_2_name[i-1], " ", probs[0][j][i]*100,"%", "  ",positions[0][j][0], " ", positions[0][j][1], " ", positions[0][j][2], " ", positions[0][j][3])
 
+def xywh_2_x1y1x2y2(x, y, w, h):
+    x1  = (x - w / 2.) * args.image_width
+    x2  = (x + w / 2.) * args.image_width
+    y1   = (y - h / 2.) * args.image_height
+    y2   = (y + h / 2.) * args.image_height
+    return x1, y1, x2, y2
+
+
+def batch_boxes(positions, probs):
+    batch_size = positions.shape[0]
+    batch_list=[]
+    if nms==True:
+        for k in range(batch_size):
+            box_list = []
+            for i in range(1, 81):
+                for j in range(positions.shape[2]):
+                    if positions[k][i][j][1]!=0 and positions[k][i][j][2]!=0 and probs[k][i][j]!=0:
+                        x1, y1, x2, y2 = xywh_2_x1y1x2y2(positions[k][i][j][0], positions[k][i][j][1], positions[k][i][j][2], positions[k][i][j][3])
+                        bbox = [i-1, x1, y1, x2, y2, probs[k][i][j]]
+                        box_list.append(bbox)
+            batch_list.append(np.asarray(box_list))
+    else:
+        for k in range(batch_size):
+            box_list = []
+            for j in range(positions.shape[1]):
+                for i in range(1, 81):
+                    if positions[0][j][1]!=0 and positions[0][j][2]!=0 and probs[0][j][i]!=0:
+                        x1, y1, x2, y2 = xywh_2_x1y1x2y2(positions[k][i][j][0], positions[k][i][j][1], positions[k][i][j][2], positions[k][i][j][3])
+                        bbox = [i-1, x1, y1, x2, y2, probs[k][i][j]]
+                        box_list.append(bbox)
+            batch_list.append(np.asarray(box_list))
+    return batch_list
+
+
 
 @flow.function(func_config)
 def yolo_user_op_eval_job():
@@ -85,27 +119,8 @@ if __name__ == "__main__":
     global cur_time
     cur_time = time.time()
 
-    def create_callback(step):
-        def nop(ret):
-            pass
-        def callback(ret):
-            yolo_pos, yolo_prob = ret
-            print_detect_box(yolo_pos, yolo_prob)
-            global cur_time
-            if step==0:
-                print("start_time:", time.time())
-            elif step==args.total_batch_num-1:
-                print("end time:", time.time())
-            print(time.time()-cur_time)
-
-            cur_time = time.time()
-
-        if step % args.loss_print_steps == 0:
-            return callback
-        else:
-            return nop
-
-
 
     for step in range(args.total_batch_num):
-        yolo_user_op_eval_job().async_get(create_callback(step))
+        yolo_pos, yolo_prob = yolo_user_op_eval_job().get()
+        batch_list = batch_boxes(yolo_pos, yolo_prob)
+        print("batch_list", batch_list)
