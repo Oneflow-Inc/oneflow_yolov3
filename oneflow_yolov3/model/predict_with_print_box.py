@@ -52,7 +52,7 @@ def print_detect_box(positions, probs):
         batch_size = positions.shape[0]
         for k in range(batch_size):
             for i in range(1, 81):
-                for j in range(positions.shape[1]):
+                for j in range(positions.shape[2]):
                     if positions[k][i][j][1]!=0 and positions[k][i][j][2]!=0 and probs[k][i][j]!=0:
                         print(label_2_name[i-1], " ", probs[k][i][j]*100,"%", "  ", positions[k][i][j][0], " ", positions[k][i][j][1], " ", positions[k][i][j][2], " ", positions[k][i][j][3])
     else:
