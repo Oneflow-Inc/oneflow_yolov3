@@ -265,32 +265,11 @@ def YoloNetBody(in_blob, gt_bbox_blob=None, gt_label_blob=None,gt_valid_num_blob
     print(yolo_positions.shape)
     print(yolo_probs.shape)
     if nms:
-      #right
-      #yolo_probs_transpose = flow.transpose(yolo_probs, perm=[0, 2, 1]) #(b, 81, n_boxes)
-      #pre_nms_top_k_inds = flow.math.top_k(yolo_probs_transpose,k=20000) #（b, 81, n_boxes）
-      #pre_nms_top_k_inds1 = flow.reshape(pre_nms_top_k_inds, shape=(pre_nms_top_k_inds.shape[0], pre_nms_top_k_inds.shape[1]*pre_nms_top_k_inds.shape[2]), name="reshape1")#(b, 81*n_boxes)
-      #gathered_yolo_positions = flow.gather(yolo_positions, pre_nms_top_k_inds1, axis=1, batch_dims=1) #(b, 81*n_boxes, 4)
-      #gathered_yolo_positions = flow.reshape(gathered_yolo_positions, shape=(gathered_yolo_positions.shape[0], yolo_probs.shape[2], yolo_positions.shape[1], yolo_positions.shape[2]), name="reshape2") #(b, 81, n_boxes, 4)
-      #gathered_yolo_positions = flow.reshape(gathered_yolo_positions, shape=(gathered_yolo_positions.shape[0] * yolo_probs.shape[2], yolo_positions.shape[1], yolo_positions.shape[2]), name="reshape3")#(b * 81, n_boxes, 4)
-      #yolo_probs_transpose_reshape = flow.reshape(yolo_probs_transpose, shape=(yolo_probs_transpose.shape[0] * yolo_probs_transpose.shape[1], yolo_probs_transpose.shape[2]))#(b*81, n_boxes)
-      #pre_nms_top_k_inds_reshape =  flow.reshape(pre_nms_top_k_inds, shape=(pre_nms_top_k_inds.shape[0]*pre_nms_top_k_inds.shape[1], pre_nms_top_k_inds.shape[2]))#(b*81, n_boxes)
-      #gathered_yolo_probs = flow.gather(yolo_probs_transpose_reshape, pre_nms_top_k_inds_reshape, axis=1, batch_dims=1)#(b* 81, n_boxes)
-      ##nms_val = flow.detection.nms(gathered_yolo_positions, gathered_yolo_probs, nms_iou_threshold=nms_threshold, post_nms_top_n=-1)
-      #nms_val = yolo_nms(gathered_yolo_positions, gathered_yolo_probs, iou_threshold=nms_threshold, keep_n=-1, batch_dims=1, name="nms") #b*81, n_boxes
-      #nms_val_cast = flow.cast(nms_val, dtype=flow.float)
-      #nms_val_reshape = flow.reshape(nms_val_cast, shape=(nms_val.shape[0], nms_val.shape[1], 1))
-      #final_boxes = flow.math.multiply(gathered_yolo_positions, nms_val_reshape) #81,270,4
-      #final_probs = flow.math.multiply(gathered_yolo_probs, nms_val_cast) #81,270
-      #print(final_boxes.shape, final_probs.shape)
-      #return final_boxes, final_probs
-      
       yolo_probs_transpose = flow.transpose(yolo_probs, perm=[0, 2, 1]) #(b, 81, n_boxes)
       pre_nms_top_k_inds = flow.math.top_k(yolo_probs_transpose,k=20000) #（b, 81, n_boxes）
       pre_nms_top_k_inds1 = flow.reshape(pre_nms_top_k_inds, shape=(pre_nms_top_k_inds.shape[0], pre_nms_top_k_inds.shape[1]*pre_nms_top_k_inds.shape[2]), name="reshape1")#(b, 81*n_boxes)
       gathered_yolo_positions = flow.gather(yolo_positions, pre_nms_top_k_inds1, axis=1, batch_dims=1) #(b, 81*n_boxes, 4)
       gathered_yolo_positions = flow.reshape(gathered_yolo_positions, shape=(gathered_yolo_positions.shape[0], yolo_probs.shape[2], yolo_positions.shape[1], yolo_positions.shape[2]), name="reshape2") #(b, 81, n_boxes, 4)
-      #yolo_probs_transpose_reshape = flow.reshape(yolo_probs_transpose, shape=(yolo_probs_transpose.shape[0] * yolo_probs_transpose.shape[1], yolo_probs_transpose.shape[2]))#(b*81, n_boxes)
-      #pre_nms_top_k_inds_reshape =  flow.reshape(pre_nms_top_k_inds, shape=(pre_nms_top_k_inds.shape[0]*pre_nms_top_k_inds.shape[1], pre_nms_top_k_inds.shape[2]))#(b*81, n_boxes)
       gathered_yolo_probs = flow.gather(yolo_probs_transpose, pre_nms_top_k_inds, axis=2, batch_dims=2)#(b, 81, n_boxes)
       nms_val = yolo_nms(gathered_yolo_positions, gathered_yolo_probs, iou_threshold=nms_threshold, keep_n=-1, batch_dims=2, name="nms") #b, 81, n_boxes
       nms_val_cast = flow.cast(nms_val, dtype=flow.float) #(b, 81, n_boxes)
