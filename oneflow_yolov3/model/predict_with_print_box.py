@@ -19,16 +19,14 @@ parser.add_argument("-batch_size", "--batch_size", type=int, default=1, required
 parser.add_argument("-total_batch_num", "--total_batch_num", type=int, default=308, required=False)
 parser.add_argument("-loss_print_steps", "--loss_print_steps", type=int, default=1, required=False)
 parser.add_argument("-use_tensorrt", "--use_tensorrt", type=int, default=0, required=False)
+parser.add_argument("-image_path_list", "--image_path_list", type=str, nargs='+', required=True)
 
 
 args = parser.parse_args()
 
 assert os.path.exists(args.model_load_dir)
-assert os.path.exists(args.image_list_path)
+assert os.path.exists(args.image_path_list[0])
 assert os.path.exists(args.label_to_name_file)
-with open(args.image_list_path, 'r') as f:
-    image_paths=f.read()
-    assert os.path.exists(image_paths.splitlines()[0])
 
 
 flow.config.load_library(oneflow_yolov3.lib_path())
@@ -94,11 +92,14 @@ def batch_boxes(positions, probs, origin_image_info):
             batch_list.append(np.asarray(box_list))
     return batch_list
 
-
+def striplist(l):
+    return([x.strip() for x in l])
 
 @flow.function(func_config)
 def yolo_user_op_eval_job():
-    images, origin_image_info = yolo_predict_decoder(args.batch_size, args.image_height, args.image_width, args.image_list_path, "yolo")
+    str = ' '
+    image_list = str.join(striplist(args.image_path_list))
+    images, origin_image_info = yolo_predict_decoder(args.batch_size, args.image_height, args.image_width, image_list, "yolo")
     images = flow.identity(images, name="yolo-layer1-start")
     yolo_pos_result, yolo_prob_result = YoloPredictNet(images, origin_image_info, trainable=False)
     yolo_pos_result = flow.identity(yolo_pos_result, name="yolo_pos_result_end")

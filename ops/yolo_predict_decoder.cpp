@@ -1,7 +1,26 @@
 #include "oneflow/core/framework/framework.h"
 #include "darknet.h"
+#include <vector>
 
 namespace oneflow {
+
+namespace {
+  void SplitString(const std::string& s, std::vector<std::string>& v, const std::string& c)
+ {
+  std::string::size_type pos1, pos2;
+  pos2 = s.find(c);
+  pos1 = 0;
+  while(std::string::npos != pos2)
+  {
+    v.push_back(s.substr(pos1, pos2-pos1));
+ 
+    pos1 = pos2 + c.size();
+    pos2 = s.find(c, pos1);
+  }
+  if(pos1 != s.length())
+    v.push_back(s.substr(pos1));
+ }
+}
 
 REGISTER_USER_OP("yolo_predict_decoder")
     .Output("out")
@@ -9,7 +28,7 @@ REGISTER_USER_OP("yolo_predict_decoder")
     .Attr("batch_size", UserOpAttrType::kAtInt32)
     .Attr("image_height", UserOpAttrType::kAtInt32)
     .Attr("image_width", UserOpAttrType::kAtInt32)
-    .Attr("image_list_path", UserOpAttrType::kAtString)
+    .Attr("image_path_list", UserOpAttrType::kAtString)
     .SetTensorDescInferFn([](user_op::InferContext* ctx) -> Maybe<void> {
       Shape* out_shape = ctx->Shape4ArgNameAndIndex("out", 0);
       Shape* origin_image_info_shape = ctx->Shape4ArgNameAndIndex("origin_image_info", 0);
@@ -33,13 +52,10 @@ class YoloPredictDecoderKernel final : public oneflow::user_op::OpKernel {
  public:
   YoloPredictDecoderKernel(oneflow::user_op::KernelInitContext* ctx) : oneflow::user_op::OpKernel(ctx) {
     batch_id_ = 0;
-    std::string image_list_path = ctx->GetAttr<std::string>("image_list_path");
-    char *cstr = new char[image_list_path.length() + 1];
-    strcpy(cstr, image_list_path.c_str());
-    list* plist = get_paths(cstr);
-    delete [] cstr;
-    dataset_size_=plist->size;
-    paths = (char **)list_to_array(plist);
+    std::string image_path_list = ctx->GetAttr<std::string>("image_path_list");  
+    std::string splitter=" ";
+    SplitString(image_path_list, paths, splitter);
+    dataset_size_ = paths.size();
   }
   YoloPredictDecoderKernel() = default;
   ~YoloPredictDecoderKernel() = default;
@@ -47,7 +63,7 @@ class YoloPredictDecoderKernel final : public oneflow::user_op::OpKernel {
  private:
   int32_t batch_id_;
   int32_t dataset_size_;
-  char **paths;
+  std::vector<std::string> paths;
 
   void Compute(oneflow::user_op::KernelContext* ctx) override {
     const int32_t batch_size = ctx->GetAttr<int32_t>("batch_size");
@@ -57,7 +73,10 @@ class YoloPredictDecoderKernel final : public oneflow::user_op::OpKernel {
     user_op::Tensor* origin_image_info_blob = ctx->Tensor4ArgNameAndIndex("origin_image_info", 0);
     user_op::MultiThreadLoopInOpKernel(batch_size, [&out_blob, &origin_image_info_blob, batch_size, image_height, image_width, this](size_t i){
       int img_idx = (batch_id_ * batch_size + i) % dataset_size_;
-      image im = load_image_color(paths[img_idx], 0, 0);
+      char *img_path = new char[paths[img_idx].length() + 1];
+      strcpy(img_path, paths[img_idx].c_str());
+      image im = load_image_color(img_path, 0, 0);
+      delete [] img_path;
       image sized = letterbox_image(im, image_height, image_width);
       *(origin_image_info_blob->mut_dptr<int32_t>()+ i * origin_image_info_blob->shape().Count(1)) = im.h;
       *(origin_image_info_blob->mut_dptr<int32_t>()+ i * origin_image_info_blob->shape().Count(1) + 1) = im.w;
