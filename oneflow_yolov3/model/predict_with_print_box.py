@@ -61,15 +61,15 @@ def print_detect_box(positions, probs):
                 if positions[0][j][1]!=0 and positions[0][j][2]!=0 and probs[0][j][i]!=0:
                     print(label_2_name[i-1], " ", probs[0][j][i]*100,"%", "  ",positions[0][j][0], " ", positions[0][j][1], " ", positions[0][j][2], " ", positions[0][j][3])
 
-def xywh_2_x1y1x2y2(x, y, w, h):
-    x1  = (x - w / 2.) * args.image_width
-    x2  = (x + w / 2.) * args.image_width
-    y1   = (y - h / 2.) * args.image_height
-    y2   = (y + h / 2.) * args.image_height
+def xywh_2_x1y1x2y2(x, y, w, h, origin_image):
+    x1  = (x - w / 2.) * origin_image[1]
+    x2  = (x + w / 2.) * origin_image[1]
+    y1   = (y - h / 2.) * origin_image[0]
+    y2   = (y + h / 2.) * origin_image[0]
     return x1, y1, x2, y2
 
 
-def batch_boxes(positions, probs):
+def batch_boxes(positions, probs, origin_image_info):
     batch_size = positions.shape[0]
     batch_list=[]
     if nms==True:
@@ -77,8 +77,8 @@ def batch_boxes(positions, probs):
             box_list = []
             for i in range(1, 81):
                 for j in range(positions.shape[2]):
-                    if positions[k][i][j][1]!=0 and positions[k][i][j][2]!=0 and probs[k][i][j]!=0:
-                        x1, y1, x2, y2 = xywh_2_x1y1x2y2(positions[k][i][j][0], positions[k][i][j][1], positions[k][i][j][2], positions[k][i][j][3])
+                    if positions[k][i][j][2]!=0 and positions[k][i][j][3]!=0 and probs[k][i][j]!=0:
+                        x1, y1, x2, y2 = xywh_2_x1y1x2y2(positions[k][i][j][0], positions[k][i][j][1], positions[k][i][j][2], positions[k][i][j][3], origin_image_info[k])
                         bbox = [i-1, x1, y1, x2, y2, probs[k][i][j]]
                         box_list.append(bbox)
             batch_list.append(np.asarray(box_list))
@@ -87,9 +87,9 @@ def batch_boxes(positions, probs):
             box_list = []
             for j in range(positions.shape[1]):
                 for i in range(1, 81):
-                    if positions[0][j][1]!=0 and positions[0][j][2]!=0 and probs[0][j][i]!=0:
-                        x1, y1, x2, y2 = xywh_2_x1y1x2y2(positions[k][i][j][0], positions[k][i][j][1], positions[k][i][j][2], positions[k][i][j][3])
-                        bbox = [i-1, x1, y1, x2, y2, probs[k][i][j]]
+                    if positions[k][j][2]!=0 and positions[k][j][3]!=0 and probs[k][j][i]!=0:
+                        x1, y1, x2, y2 = xywh_2_x1y1x2y2(positions[k][j][0], positions[k][j][1], positions[k][j][2], positions[k][j][3], origin_image_info[k])
+                        bbox = [i-1, x1, y1, x2, y2, probs[k][j][i]]
                         box_list.append(bbox)
             batch_list.append(np.asarray(box_list))
     return batch_list
@@ -103,7 +103,7 @@ def yolo_user_op_eval_job():
     yolo_pos_result, yolo_prob_result = YoloPredictNet(images, origin_image_info, trainable=False)
     yolo_pos_result = flow.identity(yolo_pos_result, name="yolo_pos_result_end")
     yolo_prob_result = flow.identity(yolo_prob_result, name="yolo_prob_result_end")
-    return yolo_pos_result, yolo_prob_result
+    return yolo_pos_result, yolo_prob_result, origin_image_info
 
 if __name__ == "__main__":
     flow.config.gpu_device_num(args.gpu_num_per_node)
@@ -121,6 +121,6 @@ if __name__ == "__main__":
 
 
     for step in range(args.total_batch_num):
-        yolo_pos, yolo_prob = yolo_user_op_eval_job().get()
-        batch_list = batch_boxes(yolo_pos, yolo_prob)
+        yolo_pos, yolo_prob, origin_image_info = yolo_user_op_eval_job().get()
+        batch_list = batch_boxes(yolo_pos, yolo_prob, origin_image_info)
         print("batch_list", batch_list)
