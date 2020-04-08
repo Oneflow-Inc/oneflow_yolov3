@@ -11,6 +11,6 @@ def yolo_predict_decoder(batch_size, image_height, image_width, image_list_path,
             .SetAttr("batch_size", batch_size, "AttrTypeInt32")
             .SetAttr("image_height", image_height, "AttrTypeInt32")
             .SetAttr("image_width", image_width, "AttrTypeInt32")
-            .SetAttr("image_list_path", image_list_path, "AttrTypeString")
+            .SetAttr("image_path_list", image_list_path, "AttrTypeString")
             .Build().RemoteBlobList()
         )
