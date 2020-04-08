@@ -1,6 +1,5 @@
 set -x
-rm -rf *.so
-rm -rf */*.so
+rm -rf oneflow_yolov3/liboneflow_yolov3.so
 rm -rf build
 rm -rf log
 rm -rf core.*
