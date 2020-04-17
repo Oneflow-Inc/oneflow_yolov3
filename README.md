@@ -15,6 +15,20 @@ bash scripts/test.sh
 ```
 ./yolo_predict.sh
 ```
+或
+```
+./yolo_predict_python_data_preprocess.sh
+```
+
+## 支持的数据格式
+1. 如果网络初始化前可以确定要做推理的图片
+- 可以将文件路径写入一个文件filename中，配置image_list_path参数执行
+- 也可以直接传图片路径列表，配置image_path_list参数执行
+可参考yolo_predict.sh
+2. 如果网络初始化前不能确定推理的图片
+- 每次执行时传入图片路径执行
+可参考yolo_predict_python_data_preprocess.sh
+
 
 ## 使用自己的数据集预测
 1. 准备图片，如data/images的示例
@@ -24,8 +38,8 @@ bash scripts/test.sh
 
 
 ## 说明
-目前数据预处理部分对darknet有依赖，其中：  
-predict decoder中调用load_image_color、letterbox_image函数  
+目前如果调用yolo_predict.sh执行，数据预处理部分对darknet有依赖。
+，其中：predict decoder中调用load_image_color、letterbox_image函数  
 train decoder中调用load_data_detection函数  
 主要涉及以下操作，在后续的版本中会使用oneflow decoder ops替换  
 1. image read  
