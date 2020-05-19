@@ -11,8 +11,9 @@ def upsample_nearest(x, scale, name, data_format="channels_first"):
         .Op("upsample_nearest")
         .Input("x", [x])
         .Output("y")
-        .SetAttr("scale", scale, "AttrTypeInt32")
-        .SetAttr("data_format", data_format, "AttrTypeString")
+        .Attr("scale", scale, "AttrTypeInt32")
+        .Attr("data_format", data_format, "AttrTypeString")
         .Build()
+        .InferAndTryRun()
         .RemoteBlobList()[0]
     )

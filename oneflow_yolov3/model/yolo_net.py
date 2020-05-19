@@ -83,7 +83,10 @@ def _conv2d_layer(
   return output
 
 def _batch_norm(inputs, axis, momentum, epsilon, center=True, scale=True, trainable=True, name=None):
-
+    if trainable == True:
+      training = True 
+    else:
+      training = False
     return flow.layers.batch_normalization(
         inputs=inputs,
         axis=axis,
@@ -92,6 +95,7 @@ def _batch_norm(inputs, axis, momentum, epsilon, center=True, scale=True, traina
         center=center,
         scale=scale,
         trainable=trainable,
+        training=training,
         name=name
     )
 

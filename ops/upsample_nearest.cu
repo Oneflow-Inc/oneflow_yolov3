@@ -59,15 +59,14 @@ __global__ void UpsampleNearestBackward(const int64_t nthreads, const T* dy_dptr
 template<typename T>
 class UpsampleNearestGPUKernel final : public user_op::OpKernel {
  public:
-  UpsampleNearestGPUKernel(user_op::KernelInitContext* ctx) : user_op::OpKernel(ctx) {}
   UpsampleNearestGPUKernel() = default;
   ~UpsampleNearestGPUKernel() = default;
 
  private:
-  void Compute(user_op::KernelContext* ctx) override {
+  void Compute(user_op::KernelComputeContext* ctx) const override {
     const user_op::Tensor* x_blob = ctx->Tensor4ArgNameAndIndex("x", 0);
     user_op::Tensor* y_blob = ctx->Tensor4ArgNameAndIndex("y", 0);
-    const int32_t scale = ctx->GetAttr<int32_t>("scale");
+    const int32_t scale = ctx->Attr<int32_t>("scale");
     const int64_t elem_cnt = y_blob->shape().elem_cnt();
     UpsampleNearestForward<T>
         <<<BlocksNum4ThreadsNum(elem_cnt), 1024, 0, ctx->device_ctx()->cuda_stream()>>>(
@@ -75,23 +74,24 @@ class UpsampleNearestGPUKernel final : public user_op::OpKernel {
             x_blob->shape().At(3), y_blob->shape().At(2), y_blob->shape().At(3), 1.f / scale,
             1.f / scale, false, y_blob->mut_dptr<T>());
   }
+    bool AlwaysComputeWhenAllOutputsEmpty() const override { return false; }
+
 };
 
 template<typename T>
 class UpsampleNearestGradGPUKernel final : public user_op::OpKernel {
  public:
-  UpsampleNearestGradGPUKernel(user_op::KernelInitContext* ctx) : user_op::OpKernel(ctx) {}
   UpsampleNearestGradGPUKernel() = default;
   ~UpsampleNearestGradGPUKernel() = default;
 
  private:
-  void Compute(user_op::KernelContext* ctx) override {
+  void Compute(user_op::KernelComputeContext* ctx) const override {
     user_op::Tensor* dx_blob = ctx->Tensor4ArgNameAndIndex("dx", 0);
     if (dx_blob == nullptr) { return; }
     Memset<DeviceType::kGPU>(ctx->device_ctx(), dx_blob->mut_dptr<T>(), 0,
                              dx_blob->shape().elem_cnt() * sizeof(T));
     const user_op::Tensor* dy_blob = ctx->Tensor4ArgNameAndIndex("dy", 0);
-    const int32_t scale = ctx->GetAttr<int32_t>("scale");
+    const int32_t scale = ctx->Attr<int32_t>("scale");
     const int64_t elem_cnt = dy_blob->shape().elem_cnt();
     UpsampleNearestBackward<T>
         <<<BlocksNum4ThreadsNum(elem_cnt), 1024, 0, ctx->device_ctx()->cuda_stream()>>>(
@@ -99,18 +99,16 @@ class UpsampleNearestGradGPUKernel final : public user_op::OpKernel {
             dx_blob->shape().At(3), dy_blob->shape().At(2), dy_blob->shape().At(3), 1.f / scale,
             1.f / scale, false, dx_blob->mut_dptr<T>());
   }
+    bool AlwaysComputeWhenAllOutputsEmpty() const override { return false; }
+
 };
 
 #define REGISTER_UPSAMPLE_NEAREST_GPU_KERNEL(dtype)                                 \
   REGISTER_USER_KERNEL("upsample_nearest")                                          \
-      .SetCreateFn([](user_op::KernelInitContext* ctx) {                            \
-        return new UpsampleNearestGPUKernel<dtype>(ctx);                            \
-      })                                                                            \
+      .SetCreateFn<UpsampleNearestGPUKernel<dtype>>()                               \
       .SetIsMatchedPred([](const user_op::KernelRegContext& ctx) { return true; }); \
   REGISTER_USER_KERNEL("upsample_nearest_grad")                                     \
-      .SetCreateFn([](user_op::KernelInitContext* ctx) {                            \
-        return new UpsampleNearestGradGPUKernel<dtype>(ctx);                        \
-      })                                                                            \
+      .SetCreateFn<UpsampleNearestGPUKernel<dtype>>()                               \
       .SetIsMatchedPred([](const user_op::KernelRegContext& ctx) { return true; });
 
 REGISTER_UPSAMPLE_NEAREST_GPU_KERNEL(float)
@@ -123,8 +121,8 @@ REGISTER_USER_OP("upsample_nearest")
     .SetTensorDescInferFn([](user_op::InferContext* ctx) -> Maybe<void> {
       const Shape* x_shape = ctx->Shape4ArgNameAndIndex("x", 0);
       Shape* y_shape = ctx->Shape4ArgNameAndIndex("y", 0);
-      const int32_t scale = ctx->GetAttr<int32_t>("scale");
-      if (ctx->GetAttr<std::string>("data_format") != "channels_first" || x_shape->NumAxes() != 4) {
+      const int32_t scale = ctx->Attr<int32_t>("scale");
+      if (ctx->Attr<std::string>("data_format") != "channels_first" || x_shape->NumAxes() != 4) {
         LOG(FATAL) << "upsample_nearest only supports NCHW";
       }
       *y_shape =
@@ -132,8 +130,7 @@ REGISTER_USER_OP("upsample_nearest")
       return Maybe<void>::Ok();
     })
     .SetGetSbpFn([](user_op::SbpContext* ctx) -> Maybe<void> {
-      SbpSignatureBuilder().Split("x", 0, 0).Split("y", 0, 0).Build(
-          ctx->sbp_sig_list()->mutable_sbp_signature()->Add());
+      ctx->NewBuilder().Split(user_op::OpArg("x", 0), 0).Split(user_op::OpArg("y", 0), 0).Build();
       return Maybe<void>::Ok();
     });
 
@@ -145,8 +142,8 @@ REGISTER_USER_OP("upsample_nearest_grad")
     .SetTensorDescInferFn([](user_op::InferContext* ctx) -> Maybe<void> {
       const Shape* dy_shape = ctx->Shape4ArgNameAndIndex("dy", 0);
       Shape* dx_shape = ctx->Shape4ArgNameAndIndex("dx", 0);
-      const int32_t scale = ctx->GetAttr<int32_t>("scale");
-      if (ctx->GetAttr<std::string>("data_format") != "channels_first"
+      const int32_t scale = ctx->Attr<int32_t>("scale");
+      if (ctx->Attr<std::string>("data_format") != "channels_first"
           || dy_shape->NumAxes() != 4) {
         LOG(FATAL) << "upsample_nearest only supports NCHW";
       }
@@ -155,8 +152,7 @@ REGISTER_USER_OP("upsample_nearest_grad")
       return Maybe<void>::Ok();
     })
     .SetGetSbpFn([](user_op::SbpContext* ctx) -> Maybe<void> {
-      SbpSignatureBuilder().Split("dy", 0).Split("dx", 0).Build(
-          ctx->sbp_sig_list()->mutable_sbp_signature()->Add());
+      ctx->NewBuilder().Split(user_op::OpArg("dy", 0), 0).Split(user_op::OpArg("dx", 0), 0).Build();
       return Maybe<void>::Ok();
     });
 

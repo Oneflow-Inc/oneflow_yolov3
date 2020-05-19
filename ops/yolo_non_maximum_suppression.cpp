@@ -24,11 +24,11 @@ REGISTER_USER_OP("yolo_nms")
       return Maybe<void>::Ok();
     })
     .SetGetSbpFn([](user_op::SbpContext* ctx) -> Maybe<void> {
-      SbpSignatureBuilder()
-        .Split("bbox", 0, 0)
-        .Split("probs", 0, 0)
-        .Split("out", 0, 0)
-        .Build(ctx->sbp_sig_list()->mutable_sbp_signature()->Add());
+      ctx->NewBuilder()
+        .Split(user_op::OpArg("bbox", 0), 0)
+        .Split(user_op::OpArg("probs", 0), 0)
+        .Split(user_op::OpArg("out", 0), 0)
+        .Build();
 
       return Maybe<void>::Ok();
     });

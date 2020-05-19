@@ -109,12 +109,11 @@ __global__ void SetOutBoxes(const T* bbox_ptr, const int32_t* origin_image_info_
 template<typename T>
 class YoloDetectGpuKernel final : public user_op::OpKernel {
  public:
-  YoloDetectGpuKernel(user_op::KernelInitContext* ctx) : user_op::OpKernel(ctx) {}
   YoloDetectGpuKernel() = default;
   ~YoloDetectGpuKernel() = default;
 
  private:
-  void Compute(user_op::KernelContext* ctx) override {
+  void Compute(user_op::KernelComputeContext* ctx) const override {
     const user_op::Tensor* bbox = ctx->Tensor4ArgNameAndIndex("bbox", 0);
     const user_op::Tensor* probs = ctx->Tensor4ArgNameAndIndex("probs", 0);
     const user_op::Tensor* origin_image_info = ctx->Tensor4ArgNameAndIndex("origin_image_info", 0);
@@ -128,12 +127,12 @@ class YoloDetectGpuKernel final : public user_op::OpKernel {
     Memset<DeviceType::kGPU>(ctx->device_ctx(), out_bbox->mut_dptr<T>(), 0,
                              out_bbox->shape().elem_cnt() * sizeof(T));
     
-    auto anchor_boxes = ctx->GetAttr<std::vector<int32_t>>("anchor_boxes"); //size=6 3*hw
+    auto anchor_boxes = ctx->Attr<std::vector<int32_t>>("anchor_boxes"); //size=6 3*hw
     const int32_t layer_nbox = anchor_boxes.size() / 2;
     const int32_t box_num = bbox->shape().At(1);
-    const int32_t probs_num = ctx->GetAttr<int32_t>("num_classes") + 1;
-    const float prob_thresh = ctx->GetAttr<float>("prob_thresh");
-    const int32_t max_out_boxes = ctx->GetAttr<int32_t>("max_out_boxes");
+    const int32_t probs_num = ctx->Attr<int32_t>("num_classes") + 1;
+    const float prob_thresh = ctx->Attr<float>("prob_thresh");
+    const int32_t max_out_boxes = ctx->Attr<int32_t>("max_out_boxes");
 
     TmpBufferManager buf_manager(static_cast<int32_t>(tmp_buffer->shape().elem_cnt()),
                                     tmp_buffer->mut_dptr<void>(), box_num, layer_nbox*2);
@@ -169,16 +168,17 @@ class YoloDetectGpuKernel final : public user_op::OpKernel {
               + im_index * origin_image_info->shape().Count(1),
           buf_manager.SelectIndsPtr(),
           valid_num_ptr,
-          buf_manager.AnchorBoxesTmpPtr(), out_bbox_ptr, ctx->GetAttr<int32_t>("layer_height"), ctx->GetAttr<int32_t>("layer_width"), layer_nbox,
-          ctx->GetAttr<int32_t>("image_height"), ctx->GetAttr<int32_t>("image_width"));
+          buf_manager.AnchorBoxesTmpPtr(), out_bbox_ptr, ctx->Attr<int32_t>("layer_height"), ctx->Attr<int32_t>("layer_width"), layer_nbox,
+          ctx->Attr<int32_t>("image_height"), ctx->Attr<int32_t>("image_width"));
     }
-  };
+  }
+  bool AlwaysComputeWhenAllOutputsEmpty() const override { return false; }
+
 };
 
 #define REGISTER_YOLO_DETECT_GPU_KERNEL(dtype)                                                                \
   REGISTER_USER_KERNEL("yolo_detect")                                                                         \
-      .SetCreateFn(                                                                                           \
-          [](user_op::KernelInitContext* ctx) { return new YoloDetectGpuKernel<dtype>(ctx); })                \
+      .SetCreateFn<YoloDetectGpuKernel<dtype>>()                                                              \
       .SetIsMatchedPred([](const user_op::KernelRegContext& ctx) {                                            \
         const user_op::TensorDesc* in_desc = ctx.TensorDesc4ArgNameAndIndex("bbox", 0);                       \
         return ctx.device_type() == DeviceType::kGPU                                                          \
@@ -189,8 +189,8 @@ class YoloDetectGpuKernel final : public user_op::OpKernel {
         const Shape* probs_shape = ctx->Shape4ArgNameAndIndex("probs", 0);                                    \
         const int32_t box_num = bbox_shape->At(1);                                                            \
         const int32_t probs_num = bbox_shape->At(1);                                                          \
-        const float prob_thresh = ctx->GetAttr<float>("prob_thresh");                                         \
-        const int32_t layer_nbox = ctx->GetAttr<std::vector<int32_t>>("anchor_boxes").size() / 2;             \
+        const float prob_thresh = ctx->Attr<float>("prob_thresh");                                         \
+        const int32_t layer_nbox = ctx->Attr<std::vector<int32_t>>("anchor_boxes").size() / 2;             \
                                                                                                               \
         /* select_inds */                                                                                     \
         const int32_t select_inds_aligned_bytes = GetCudaAlignedSize(box_num * sizeof(int32_t));              \

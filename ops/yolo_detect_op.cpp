@@ -27,7 +27,7 @@ REGISTER_USER_OP("yolo_detect")
       CHECK_EQ_OR_RETURN(bbox_shape->NumAxes(), probs_shape->NumAxes());
       CHECK_EQ_OR_RETURN(bbox_shape->At(1), probs_shape->At(1));
       CHECK_EQ_OR_RETURN(bbox_shape->At(2), 4);
-      CHECK_EQ_OR_RETURN(probs_shape->At(2), ctx->GetAttr<int32_t>("num_classes")+1);
+      CHECK_EQ_OR_RETURN(probs_shape->At(2), ctx->Attr<int32_t>("num_classes")+1);
       Shape* out_bbox_shape = ctx->Shape4ArgNameAndIndex("out_bbox", 0);
       Shape* out_probs_shape = ctx->Shape4ArgNameAndIndex("out_probs", 0);
       Shape* valid_num_shape = ctx->Shape4ArgNameAndIndex("valid_num", 0);
@@ -36,7 +36,7 @@ REGISTER_USER_OP("yolo_detect")
       *ctx->Dtype4ArgNameAndIndex("out_bbox", 0) = *ctx->Dtype4ArgNameAndIndex("bbox", 0);
       *ctx->Dtype4ArgNameAndIndex("out_probs", 0) = *ctx->Dtype4ArgNameAndIndex("probs", 0);
       *ctx->Dtype4ArgNameAndIndex("valid_num", 0) = *ctx->Dtype4ArgNameAndIndex("origin_image_info", 0);
-      int32_t max_out_boxes = ctx->GetAttr<int32_t>("max_out_boxes"); //todo, in python set, optional->required
+      int32_t max_out_boxes = ctx->Attr<int32_t>("max_out_boxes"); //todo, in python set, optional->required
       CHECK_GT_OR_RETURN(max_out_boxes, 0);
       CHECK_LE_OR_RETURN(max_out_boxes, bbox_shape->At(1));
       out_bbox_shape->Set(1, max_out_boxes);
@@ -52,14 +52,14 @@ REGISTER_USER_OP("yolo_detect")
       return Maybe<void>::Ok();
     })
     .SetGetSbpFn([](user_op::SbpContext* ctx) -> Maybe<void> {
-      SbpSignatureBuilder()
-        .Split("bbox", 0, 0)
-        .Split("probs", 0, 0)
-        .Split("origin_image_info", 0, 0)
-        .Split("out_bbox", 0, 0)
-        .Split("out_probs", 0, 0)
-        .Split("valid_num", 0, 0)
-        .Build(ctx->sbp_sig_list()->mutable_sbp_signature()->Add());
+      ctx->NewBuilder()
+        .Split(user_op::OpArg("bbox", 0), 0)
+        .Split(user_op::OpArg("probs", 0), 0)
+        .Split(user_op::OpArg("origin_image_info", 0), 0)
+        .Split(user_op::OpArg("out_bbox", 0), 0)
+        .Split(user_op::OpArg("out_probs", 0), 0)
+        .Split(user_op::OpArg("valid_num", 0), 0)
+        .Build();
 
       return Maybe<void>::Ok();
     });

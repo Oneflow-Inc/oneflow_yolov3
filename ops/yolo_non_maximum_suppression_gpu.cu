@@ -93,12 +93,11 @@ __global__ void ScanSuppression(int num_boxes, int num_blocks, int num_keep,
 template<typename T>
 class YoloNmsGpuKernel final : public user_op::OpKernel {
  public:
-  YoloNmsGpuKernel(user_op::KernelInitContext* ctx) : user_op::OpKernel(ctx) {}
   YoloNmsGpuKernel() = default;
   ~YoloNmsGpuKernel() = default;
 
  private:
-  void Compute(user_op::KernelContext* ctx) override {
+  void Compute(user_op::KernelComputeContext* ctx) const override  {
     const user_op::Tensor* boxes_blob = ctx->Tensor4ArgNameAndIndex("bbox", 0);
     const user_op::Tensor* probs_blob = ctx->Tensor4ArgNameAndIndex("probs", 0);
     user_op::Tensor* keep_blob = ctx->Tensor4ArgNameAndIndex("out", 0);
@@ -109,11 +108,11 @@ class YoloNmsGpuKernel final : public user_op::OpKernel {
     int64_t* suppression_mask = tmp_blob->mut_dptr<int64_t>();
 
     //boxes dims = batch_dims+2
-    int32_t batch_dims = ctx->GetAttr<int>("batch_dims");
+    int32_t batch_dims = ctx->Attr<int>("batch_dims");
     CHECK_EQ(batch_dims+2, boxes_blob->shape().NumAxes());
     const int num_boxes = boxes_blob->shape().At(batch_dims);
     const int batch_size = boxes_blob->shape().elem_cnt() / boxes_blob->shape().Count(batch_dims);
-    int num_keep = ctx->GetAttr<int>("keep_n");
+    int num_keep = ctx->Attr<int>("keep_n");
     if (num_keep <= 0 || num_keep > num_boxes) { num_keep = num_boxes; }
     const int num_blocks = CeilDiv<int>(num_boxes, kBlockSize);
     Memset<DeviceType::kGPU>(ctx->device_ctx(), suppression_mask, 0,
@@ -124,18 +123,20 @@ class YoloNmsGpuKernel final : public user_op::OpKernel {
     dim3 threads(kBlockSize);
     FOR_RANGE(int64_t, idx, 0, batch_size) {
       CalcSuppressionBitmaskMatrix<<<blocks, threads, 0, ctx->device_ctx()->cuda_stream()>>>(
-          num_boxes, ctx->GetAttr<float>("iou_threshold"), boxes + idx * boxes_blob->shape().Count(batch_dims), suppression_mask + idx * num_boxes * num_blocks, probs + idx * probs_blob->shape().Count(batch_dims));
+          num_boxes, ctx->Attr<float>("iou_threshold"), boxes + idx * boxes_blob->shape().Count(batch_dims), suppression_mask + idx * num_boxes * num_blocks, probs + idx * probs_blob->shape().Count(batch_dims));
       ScanSuppression<<<1, num_blocks, num_blocks, ctx->device_ctx()->cuda_stream()>>>(
           num_boxes, num_blocks, num_keep, suppression_mask + idx * num_boxes * num_blocks, keep+ idx * num_boxes, probs + idx * probs_blob->shape().Count(batch_dims));
     }
   }
+  bool AlwaysComputeWhenAllOutputsEmpty() const override { return false; }
+
 };
 
 #define REGISTER_YOLO_NMS_GPU_KERNEL(dtype)                                                           \
   REGISTER_USER_KERNEL("yolo_nms")                                                                    \
-      .SetCreateFn([](user_op::KernelInitContext* ctx) { return new YoloNmsGpuKernel<dtype>(ctx); }) \
+      .SetCreateFn<YoloNmsGpuKernel<dtype>>()                                                    \
       .SetIsMatchedPred([](const user_op::KernelRegContext& ctx) {                               \
-        const user_op::TensorDesc* in_desc = ctx.TensorDesc4ArgNameAndIndex("bbox", 0);            \
+        const user_op::TensorDesc* in_desc = ctx.TensorDesc4ArgNameAndIndex("bbox", 0);          \
         const user_op::TensorDesc* out_desc = ctx.TensorDesc4ArgNameAndIndex("out", 0);          \
         if (ctx.device_type() == DeviceType::kGPU && out_desc->data_type() == DataType::kInt8    \
             && in_desc->data_type() == GetDataType<dtype>::value) {                              \
@@ -145,7 +146,7 @@ class YoloNmsGpuKernel final : public user_op::OpKernel {
       })                                                                                         \
       .SetInferTmpSizeFn([](user_op::InferContext* ctx) {                                        \
         Shape* bbox_shape = ctx->Shape4ArgNameAndIndex("bbox", 0);                               \
-        int32_t batch_dims= ctx->GetAttr<int>("batch_dims");                                       \
+        int32_t batch_dims= ctx->Attr<int>("batch_dims");                                       \
         int64_t batch_size = bbox_shape->elem_cnt() / bbox_shape->Count(batch_dims);               \
         int64_t num_boxes = bbox_shape->At(batch_dims);                                          \
         int64_t blocks = CeilDiv<int64_t>(num_boxes, kBlockSize);                                \
