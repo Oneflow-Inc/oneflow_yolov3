@@ -99,7 +99,7 @@ input_blob_def_dict = {
 }
 
 
-@flow.function(func_config)
+@flow.global_function((func_config)
 def yolo_user_op_eval_job(images=input_blob_def_dict["images"], origin_image_info=input_blob_def_dict["origin_image_info"]):
     yolo_pos_result, yolo_prob_result = YoloPredictNet(images, origin_image_info, trainable=False)
     yolo_pos_result = flow.identity(yolo_pos_result, name="yolo_pos_result_end")

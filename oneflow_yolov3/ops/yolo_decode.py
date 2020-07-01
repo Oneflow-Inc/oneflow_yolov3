@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 import oneflow as flow
 
-def yolo_predict_decoder(batch_size, image_height, image_width, image_list_path, name):
+def yolo_predict_decoder(batch_size, image_height, image_width, image_paths, name):
     with flow.fixed_placement("cpu", "0:0"):
         return (
             flow.user_op_builder(name)
@@ -11,6 +11,6 @@ def yolo_predict_decoder(batch_size, image_height, image_width, image_list_path,
             .Attr("batch_size", batch_size, "AttrTypeInt32")
             .Attr("image_height", image_height, "AttrTypeInt32")
             .Attr("image_width", image_width, "AttrTypeInt32")
-            .Attr("image_path_list", image_list_path, "AttrTypeString")
+            .Attr("image_paths", image_paths, "AttrTypeListString")
             .Build().InferAndTryRun().RemoteBlobList()
         )

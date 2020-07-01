@@ -138,7 +138,6 @@ class YoloDetectGpuKernel final : public user_op::OpKernel {
                                     tmp_buffer->mut_dptr<void>(), box_num, layer_nbox*2);
     Memcpy<DeviceType::kGPU>(ctx->device_ctx(), reinterpret_cast<void*>(buf_manager.AnchorBoxesTmpPtr()), reinterpret_cast<void*>(anchor_boxes.data()), GetCudaAlignedSize(buf_manager.AnchorBoxesTmpElemCnt() * sizeof(int32_t)),
                            cudaMemcpyHostToDevice);
-    CudaCheck(cudaStreamSynchronize(ctx->device_ctx()->cuda_stream())); //TODO delete?
 
     FOR_RANGE(int32_t, im_index, 0, bbox->shape().At(0)) {
       const T* probs_ptr =
@@ -179,11 +178,9 @@ class YoloDetectGpuKernel final : public user_op::OpKernel {
 #define REGISTER_YOLO_DETECT_GPU_KERNEL(dtype)                                                                \
   REGISTER_USER_KERNEL("yolo_detect")                                                                         \
       .SetCreateFn<YoloDetectGpuKernel<dtype>>()                                                              \
-      .SetIsMatchedPred([](const user_op::KernelRegContext& ctx) {                                            \
-        const user_op::TensorDesc* in_desc = ctx.TensorDesc4ArgNameAndIndex("bbox", 0);                       \
-        return ctx.device_type() == DeviceType::kGPU                                                          \
-               && in_desc->data_type() == GetDataType<dtype>::value;                                          \
-      })                                                                                                      \
+      .SetIsMatchedHob((user_op::HobDeviceType() == DeviceType::kGPU)                                     \
+                       & (user_op::HobDataType("bbox", 0) == GetDataType<dtype>::value)         \
+                       & (user_op::HobDataType("probs", 0) == GetDataType<dtype>::value))         \
       .SetInferTmpSizeFn([](user_op::InferContext* ctx) {                                                     \
         const Shape* bbox_shape = ctx->Shape4ArgNameAndIndex("bbox", 0);                                      \
         const Shape* probs_shape = ctx->Shape4ArgNameAndIndex("probs", 0);                                    \

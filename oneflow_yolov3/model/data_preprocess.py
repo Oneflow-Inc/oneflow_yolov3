@@ -1,5 +1,4 @@
 import sys
-sys.path.remove("/usr/local/lib/python2.7/site-packages")
 import cv2
 import numpy as np 
 import time

@@ -48,9 +48,9 @@ def _conv2d_layer(
     trainable=True,
 ):
   if data_format == "NCHW":
-      weight_shape = (int(filters), int(input.static_shape[1]), int(kernel_size[0]), int(kernel_size[0]))
+      weight_shape = (int(filters), int(input.shape[1]), int(kernel_size[0]), int(kernel_size[0]))
   elif data_format == "NHWC":
-      weight_shape = (int(filters), int(kernel_size[0]), int(kernel_size[0]), int(input.static_shape[3]))
+      weight_shape = (int(filters), int(kernel_size[0]), int(kernel_size[0]), int(input.shape[3]))
   else:
       raise ValueError('data_format must be "NCHW" or "NHWC".')
   weight = flow.get_variable(

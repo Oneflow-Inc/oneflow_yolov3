@@ -135,15 +135,9 @@ class YoloNmsGpuKernel final : public user_op::OpKernel {
 #define REGISTER_YOLO_NMS_GPU_KERNEL(dtype)                                                           \
   REGISTER_USER_KERNEL("yolo_nms")                                                                    \
       .SetCreateFn<YoloNmsGpuKernel<dtype>>()                                                    \
-      .SetIsMatchedPred([](const user_op::KernelRegContext& ctx) {                               \
-        const user_op::TensorDesc* in_desc = ctx.TensorDesc4ArgNameAndIndex("bbox", 0);          \
-        const user_op::TensorDesc* out_desc = ctx.TensorDesc4ArgNameAndIndex("out", 0);          \
-        if (ctx.device_type() == DeviceType::kGPU && out_desc->data_type() == DataType::kInt8    \
-            && in_desc->data_type() == GetDataType<dtype>::value) {                              \
-          return true;                                                                           \
-        }                                                                                        \
-        return false;                                                                            \
-      })                                                                                         \
+      .SetIsMatchedHob((user_op::HobDeviceType() == DeviceType::kGPU)                  \
+                       & (user_op::HobDataType("out", 0) == DataType::kInt8)           \
+                       & (user_op::HobDataType("bbox", 0) == GetDataType<dtype>::value)) \
       .SetInferTmpSizeFn([](user_op::InferContext* ctx) {                                        \
         Shape* bbox_shape = ctx->Shape4ArgNameAndIndex("bbox", 0);                               \
         int32_t batch_dims= ctx->Attr<int>("batch_dims");                                       \

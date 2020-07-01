@@ -74,8 +74,7 @@ class UpsampleNearestGPUKernel final : public user_op::OpKernel {
             x_blob->shape().At(3), y_blob->shape().At(2), y_blob->shape().At(3), 1.f / scale,
             1.f / scale, false, y_blob->mut_dptr<T>());
   }
-    bool AlwaysComputeWhenAllOutputsEmpty() const override { return false; }
-
+  bool AlwaysComputeWhenAllOutputsEmpty() const override { return false; }
 };
 
 template<typename T>
@@ -99,17 +98,16 @@ class UpsampleNearestGradGPUKernel final : public user_op::OpKernel {
             dx_blob->shape().At(3), dy_blob->shape().At(2), dy_blob->shape().At(3), 1.f / scale,
             1.f / scale, false, dx_blob->mut_dptr<T>());
   }
-    bool AlwaysComputeWhenAllOutputsEmpty() const override { return false; }
-
+  bool AlwaysComputeWhenAllOutputsEmpty() const override { return false; }
 };
 
-#define REGISTER_UPSAMPLE_NEAREST_GPU_KERNEL(dtype)                                 \
-  REGISTER_USER_KERNEL("upsample_nearest")                                          \
-      .SetCreateFn<UpsampleNearestGPUKernel<dtype>>()                               \
-      .SetIsMatchedPred([](const user_op::KernelRegContext& ctx) { return true; }); \
-  REGISTER_USER_KERNEL("upsample_nearest_grad")                                     \
-      .SetCreateFn<UpsampleNearestGPUKernel<dtype>>()                               \
-      .SetIsMatchedPred([](const user_op::KernelRegContext& ctx) { return true; });
+#define REGISTER_UPSAMPLE_NEAREST_GPU_KERNEL(dtype)       \
+  REGISTER_USER_KERNEL("upsample_nearest")                \
+      .SetCreateFn<UpsampleNearestGPUKernel<dtype>>()     \
+      .SetIsMatchedHob(user_op::HobTrue());               \
+  REGISTER_USER_KERNEL("upsample_nearest_grad")           \
+      .SetCreateFn<UpsampleNearestGradGPUKernel<dtype>>() \
+      .SetIsMatchedHob(user_op::HobTrue());
 
 REGISTER_UPSAMPLE_NEAREST_GPU_KERNEL(float)
 
@@ -129,6 +127,10 @@ REGISTER_USER_OP("upsample_nearest")
           Shape({x_shape->At(0), x_shape->At(1), scale * x_shape->At(2), scale * x_shape->At(3)});
       return Maybe<void>::Ok();
     })
+    .SetBatchAxisInferFn([](user_op::BatchAxisContext* ctx) -> Maybe<void> {
+      *ctx->BatchAxis4ArgNameAndIndex("y", 0) = *ctx->BatchAxis4ArgNameAndIndex("x", 0);
+      return Maybe<void>::Ok();
+    })
     .SetGetSbpFn([](user_op::SbpContext* ctx) -> Maybe<void> {
       ctx->NewBuilder().Split(user_op::OpArg("x", 0), 0).Split(user_op::OpArg("y", 0), 0).Build();
       return Maybe<void>::Ok();
@@ -143,8 +145,7 @@ REGISTER_USER_OP("upsample_nearest_grad")
       const Shape* dy_shape = ctx->Shape4ArgNameAndIndex("dy", 0);
       Shape* dx_shape = ctx->Shape4ArgNameAndIndex("dx", 0);
       const int32_t scale = ctx->Attr<int32_t>("scale");
-      if (ctx->Attr<std::string>("data_format") != "channels_first"
-          || dy_shape->NumAxes() != 4) {
+      if (ctx->Attr<std::string>("data_format") != "channels_first" || dy_shape->NumAxes() != 4) {
         LOG(FATAL) << "upsample_nearest only supports NCHW";
       }
       *dx_shape = Shape(

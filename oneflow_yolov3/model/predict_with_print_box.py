@@ -95,11 +95,9 @@ def batch_boxes(positions, probs, origin_image_info):
 def striplist(l):
     return([x.strip() for x in l])
 
-@flow.function(func_config)
+@flow.global_function(func_config)
 def yolo_user_op_eval_job():
-    str = ' '
-    image_list = str.join(striplist(args.image_path_list))
-    images, origin_image_info = yolo_predict_decoder(args.batch_size, args.image_height, args.image_width, image_list, "yolo")
+    images, origin_image_info = yolo_predict_decoder(args.batch_size, args.image_height, args.image_width, args.image_path_list, "yolo")
     images = flow.identity(images, name="yolo-layer1-start")
     yolo_pos_result, yolo_prob_result = YoloPredictNet(images, origin_image_info, trainable=False)
     yolo_pos_result = flow.identity(yolo_pos_result, name="yolo_pos_result_end")
