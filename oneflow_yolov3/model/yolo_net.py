@@ -5,19 +5,19 @@ from oneflow_yolov3.ops.yolo_detect import yolo_detect
 from oneflow_yolov3.ops.yolo_nms import yolo_nms
 layer_number = 1
 route_dict = {}
-yolo_pos_result=[]
-yolo_prob_result=[]
-yolo_loss_result=[]
+yolo_pos_result = []
+yolo_prob_result = []
+yolo_loss_result = []
 
-num_classes=80
-ignore_thresh=0.7
-truth_thresh=1.0
-image_height=608
-image_width=608
-max_out_boxes=90
-nms=True
+num_classes = 80
+ignore_thresh = 0.7
+truth_thresh = 1.0
+image_height = 608
+image_width = 608
+max_out_boxes = 90
+nms = True
 #nms=False
-nms_threshold=0.45
+nms_threshold = 0.45
 
 #anchor_boxes_size_list=[flow.detection.anchor_boxes_size(10, 13), flow.detection.anchor_boxes_size(16, 30), flow.detection.anchor_boxes_size(33, 23), flow.detection.anchor_boxes_size(30,61), flow.detection.anchor_boxes_size(62, 45), flow.detection.anchor_boxes_size(59, 119), flow.detection.anchor_boxes_size(116,90), flow.detection.anchor_boxes_size(156, 198), flow.detection.anchor_boxes_size(373, 326)]
 anchor_boxes_size_list=[10, 13, 16, 30, 33, 23, 30,61, 62, 45, 59, 119, 116,90, 156, 198, 373, 326]
@@ -82,6 +82,7 @@ def _conv2d_layer(
 
   return output
 
+
 def _batch_norm(inputs, axis, momentum, epsilon, center=True, scale=True, trainable=True, name=None):
     if trainable == True:
       training = True 
@@ -99,19 +100,23 @@ def _batch_norm(inputs, axis, momentum, epsilon, center=True, scale=True, traina
         name=name
     )
 
+
 def _leaky_relu(input, alpha=None, name=None):
     return flow.nn.leaky_relu(input, alpha=alpha, name=None)
     #return flow.math.relu(input)
 
+
 def _upsample(input, name=None):
   #return flow.detection.upsample_nearest(input, name=name, scale=2, data_format="channels_first")
    return upsample_nearest(input, name=name, scale=2, data_format="channels_first")
+
 
 def conv_unit(data, num_filter=1, kernel=(1, 1), stride=(1, 1), pad="same", data_format="NCHW", use_bias=False, trainable=True, prefix=''):
     conv = _conv2d_layer(name=prefix + '-conv', input=data, filters=num_filter, kernel_size=kernel, strides=stride, padding='same', data_format=data_format, dilation_rate=1, activation=None, use_bias=use_bias, trainable=trainable)
     bn = _batch_norm(conv, axis=1, momentum=0.99, epsilon = 1.0001e-5, trainable=trainable, name=prefix + '-bn')
     leaky_relu = _leaky_relu(bn, alpha=0.1, name = prefix + '-leakyRelu')
     return leaky_relu
+
 
 def ResidualBlock(data, prefix, filter, trainable):
   global layer_number
@@ -125,6 +130,7 @@ def ResidualBlock(data, prefix, filter, trainable):
   shortcut = flow.math.add(data,blob, name= 'yolo-layer' + str(layer_number) + '-shortcut')
   return shortcut
 
+
 def ResidualStage(data, prefix, n, filters, trainable):
   global layer_number
 
@@ -134,6 +140,7 @@ def ResidualStage(data, prefix, n, filters, trainable):
   for i in range(n):
     blob = ResidualBlock(blob,"%s_%d"%(prefix, i), filters, trainable=trainable)
   return blob
+
 
 def DarknetNetConvXBody(in_blob, trainable, on_stage_end=lambda x: x):
   global layer_number
@@ -155,6 +162,7 @@ def DarknetNetConvXBody(in_blob, trainable, on_stage_end=lambda x: x):
     on_stage_end(blob)
   return blob
 
+
 def YoloBlock(in_blob, prefix, filter, stage_idx, block_idx, trainable):
   global layer_number
   layer_number += 1
@@ -168,6 +176,7 @@ def YoloBlock(in_blob, prefix, filter, stage_idx, block_idx, trainable):
 
   return blob
 
+
 def YoloStage(in_blob, prefix, n, filters, stage_idx, trainable):
   global layer_number
   blob=in_blob
@@ -177,6 +186,7 @@ def YoloStage(in_blob, prefix, n, filters, stage_idx, trainable):
   blob = _conv2d_layer(name='yolo-layer' + str(layer_number) + '-conv', input=blob, filters=255, kernel_size=[1,1], strides=[1,1], padding='same', data_format="NCHW", dilation_rate=1, activation=None, use_bias=True, trainable=trainable)
 
   return blob
+
 
 def YoloPredictLayer(in_blob, origin_image_info, i, trainable):
   global layer_number
@@ -196,8 +206,8 @@ def YoloPredictLayer(in_blob, origin_image_info, i, trainable):
   print("out_bbox.shape",out_bbox.shape)
   return out_bbox, out_probs, valid_num
 
-def YoloTrainLayer(in_blob, gt_bbox_blob, gt_label_blob, gt_valid_num_blob, i):
 
+def YoloTrainLayer(in_blob, gt_bbox_blob, gt_label_blob, gt_valid_num_blob, i):
   global layer_number
   layer_name='yolo-layer' + str(layer_number)
   #placeholder for a reshape from (n,h,w,255)->(n,h,w*3,85)
@@ -220,6 +230,7 @@ def YoloTrainLayer(in_blob, gt_bbox_blob, gt_label_blob, gt_valid_num_blob, i):
   bbox_loss = flow.concat([bbox_loc_diff, bbox_objness_out, bbox_clsprob_out], axis=2, name = layer_name + '-loss_concat')
   bbox_loss_reduce_sum = flow.math.reduce_sum(bbox_loss, axis = [1,2], name = layer_name+ '-bbox_loss_reduce_sum')
   return bbox_loss_reduce_sum
+
 
 def YoloNetBody(in_blob, gt_bbox_blob=None, gt_label_blob=None,gt_valid_num_blob=None, origin_image_info=None, trainable=False):
   global layer_number
@@ -286,6 +297,7 @@ def YoloNetBody(in_blob, gt_bbox_blob=None, gt_label_blob=None,gt_valid_num_blob
   else:
     return yolo_loss_result
 
+
 def YoloPredictNet(data, origin_image_info, trainable=False):
   print("nms:", nms)
   global layer_number
@@ -294,6 +306,7 @@ def YoloPredictNet(data, origin_image_info, trainable=False):
   blob = DarknetNetConvXBody(blob, trainable, lambda x: x)
   yolo_pos_result, yolo_prob_result=YoloNetBody(in_blob=blob, origin_image_info=origin_image_info, trainable=trainable)
   return yolo_pos_result, yolo_prob_result
+
 
 def YoloTrainNet(data, gt_box, gt_label,gt_valid_num, trainable=True):
   global layer_number

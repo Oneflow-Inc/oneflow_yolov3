@@ -38,46 +38,47 @@ if args.use_tensorrt != 0:
     func_config.use_tensorrt(True)
 #func_config.tensorrt.use_fp16()
 
-label_2_name=[]
+label_2_name = []
+nms = True
 
 with open(args.label_to_name_file,'r') as f:
-  label_2_name=f.readlines()
+  label_2_name = f.readlines()
 
-nms=True
 
-print("nms:", nms)
 def print_detect_box(positions, probs):
-    if nms==True:
+    if nms:
         batch_size = positions.shape[0]
         for k in range(batch_size):
             for i in range(1, 81):
                 for j in range(positions.shape[2]):
-                    if positions[k][i][j][1]!=0 and positions[k][i][j][2]!=0 and probs[k][i][j]!=0:
-                        print(label_2_name[i-1], " ", probs[k][i][j]*100,"%", "  ", positions[k][i][j][0], " ", positions[k][i][j][1], " ", positions[k][i][j][2], " ", positions[k][i][j][3])
+                    if positions[k][i][j][1] != 0 and positions[k][i][j][2] != 0 and probs[k][i][j] != 0:
+                        print(label_2_name[i-1], " ", probs[k][i][j]*100, "%", "  ", positions[k][i][j][0], " ", positions[k][i][j][1], " ", positions[k][i][j][2], " ", positions[k][i][j][3])
     else:
         for j in range(positions.shape[1]):
             for i in range(1, 81):
-                if positions[0][j][1]!=0 and positions[0][j][2]!=0 and probs[0][j][i]!=0:
-                    print(label_2_name[i-1], " ", probs[0][j][i]*100,"%", "  ",positions[0][j][0], " ", positions[0][j][1], " ", positions[0][j][2], " ", positions[0][j][3])
+                if positions[0][j][1] != 0 and positions[0][j][2] != 0 and probs[0][j][i] != 0:
+                    print(label_2_name[i-1], " ", probs[0][j][i]*100, "%", "  ", positions[0][j][0], " ", positions[0][j][1], " ", positions[0][j][2], " ", positions[0][j][3])
+
 
 def xywh_2_x1y1x2y2(x, y, w, h, origin_image):
-    x1  = (x - w / 2.) * origin_image[1]
-    x2  = (x + w / 2.) * origin_image[1]
-    y1   = (y - h / 2.) * origin_image[0]
-    y2   = (y + h / 2.) * origin_image[0]
+    x1 = (x - w / 2.) * origin_image[1]
+    x2 = (x + w / 2.) * origin_image[1]
+    y1 = (y - h / 2.) * origin_image[0]
+    y2 = (y + h / 2.) * origin_image[0]
     return x1, y1, x2, y2
 
 
 def batch_boxes(positions, probs, origin_image_info):
     batch_size = positions.shape[0]
-    batch_list=[]
-    if nms==True:
+    batch_list = []
+    if nms:
         for k in range(batch_size):
             box_list = []
             for i in range(1, 81):
                 for j in range(positions.shape[2]):
-                    if positions[k][i][j][2]!=0 and positions[k][i][j][3]!=0 and probs[k][i][j]!=0:
-                        x1, y1, x2, y2 = xywh_2_x1y1x2y2(positions[k][i][j][0], positions[k][i][j][1], positions[k][i][j][2], positions[k][i][j][3], origin_image_info[k])
+                    if positions[k][i][j][2]!=0 and positions[k][i][j][3] != 0 and probs[k][i][j] != 0:
+                        x1, y1, x2, y2 = xywh_2_x1y1x2y2(positions[k][i][j][0], positions[k][i][j][1],
+                                                         positions[k][i][j][2], positions[k][i][j][3], origin_image_info[k])
                         bbox = [i-1, x1, y1, x2, y2, probs[k][i][j]]
                         box_list.append(bbox)
             batch_list.append(np.asarray(box_list))
@@ -86,16 +87,18 @@ def batch_boxes(positions, probs, origin_image_info):
             box_list = []
             for j in range(positions.shape[1]):
                 for i in range(1, 81):
-                    if positions[k][j][2]!=0 and positions[k][j][3]!=0 and probs[k][j][i]!=0:
-                        x1, y1, x2, y2 = xywh_2_x1y1x2y2(positions[k][j][0], positions[k][j][1], positions[k][j][2], positions[k][j][3], origin_image_info[k])
+                    if positions[k][j][2] != 0 and positions[k][j][3] != 0 and probs[k][j][i] != 0:
+                        x1, y1, x2, y2 = xywh_2_x1y1x2y2(positions[k][j][0], positions[k][j][1],
+                                                         positions[k][j][2], positions[k][j][3], origin_image_info[k])
                         bbox = [i-1, x1, y1, x2, y2, probs[k][j][i]]
                         box_list.append(bbox)
             batch_list.append(np.asarray(box_list))
     return batch_list
 
+
 input_blob_def_dict = {
-    "images" : flow.FixedTensorDef((args.batch_size, 3, args.image_height, args.image_width), dtype=flow.float),
-    "origin_image_info" : flow.FixedTensorDef((args.batch_size, 2), dtype=flow.int32),
+    "images": flow.FixedTensorDef((args.batch_size, 3, args.image_height, args.image_width), dtype=flow.float),
+    "origin_image_info": flow.FixedTensorDef((args.batch_size, 2), dtype=flow.int32),
 }
 
 
@@ -105,6 +108,7 @@ def yolo_user_op_eval_job(images=input_blob_def_dict["images"], origin_image_inf
     yolo_pos_result = flow.identity(yolo_pos_result, name="yolo_pos_result_end")
     yolo_prob_result = flow.identity(yolo_prob_result, name="yolo_prob_result_end")
     return yolo_pos_result, yolo_prob_result, origin_image_info
+
 
 if __name__ == "__main__":
     flow.config.gpu_device_num(args.gpu_num_per_node)
@@ -120,11 +124,13 @@ if __name__ == "__main__":
     global cur_time
     cur_time = time.time()
 
-
     image_list_len = len(args.image_path_list)
     for step in range(args.total_batch_num):
         img_path = args.image_path_list[step % image_list_len]
         images, origin_image_info = image_preprocess_v2(img_path, args.image_height, args.image_width)
+        start = time.time()
         yolo_pos, yolo_prob, origin_image_info = yolo_user_op_eval_job(images, origin_image_info).get()
+        end = time.time()
         batch_list = batch_boxes(yolo_pos, yolo_prob, origin_image_info)
         print("batch_list", batch_list)
+        print('cost time: %.4f ms' % (1000 * (end - start)))
