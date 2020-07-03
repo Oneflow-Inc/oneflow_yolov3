@@ -1,8 +1,6 @@
 from multiprocessing import Process, Lock, Queue
 from multiprocessing import Value, Array, RawArray
 from ctypes import Structure, c_double, memmove
-import sys
-sys.path.remove("/usr/local/lib/python2.7/site-packages")
 import cv2
 import numpy as np 
 import time
