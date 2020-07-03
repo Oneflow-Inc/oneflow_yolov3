@@ -114,12 +114,19 @@ def yolo_user_op_eval_job():
 
 
 def draw_and_save_detected_result(image_path, bboxes):
-    # 构建原图和bbox画出坐标框
-    original_image = cv2.imread(image_path)
-    original_image = cv2.cvtColor(original_image, cv2.COLOR_BGR2RGB)
-    image = draw_bbox(original_image, bboxes)
-    image = Image.fromarray(image)
-    image.show()
+    """
+    draw bbox on the origin image,and save detected result
+    bboxes:[[  class, x1, x2, y1, y2, possibility], [  class, x1, x2, y1, y2, possibility]...]
+    """
+    assert os.path.isfile(image_path)
+    if len(bboxes) == 1 and len(bboxes[0] > 0):
+        bgr_image = cv2.imread(image_path)
+        rgb_image = cv2.cvtColor(bgr_image, cv2.COLOR_BGR2RGB)
+        image = draw_bbox(rgb_image, bboxes)
+        image = Image.fromarray(image)
+        # image.show()
+        pts = os.path.splitext(image_path)
+        image.save(pts[0] + '_detected' + pts[1])  # 保存
 
 
 def read_class_names(class_file_name):
@@ -145,12 +152,13 @@ def draw_bbox(image, bboxes, classes=read_class_names(args.label_to_name_file), 
     random.seed(0)
     random.shuffle(colors)
     random.seed(None)
-
-    for i, bbox in enumerate(bboxes):
-        coor = np.array(bbox[:4], dtype=np.int32)
+    for i, bbox in enumerate(bboxes[0]):
+        if len(bbox) < 5:
+            continue
+        coor = np.array(bbox[1:5], dtype=np.int32)
         fontScale = 0.5
-        score = bbox[4]
-        class_ind = int(bbox[5])
+        score = bbox[5]
+        class_ind = int(bbox[0])
         bbox_color = colors[class_ind]
         bbox_thick = int(0.6 * (image_h + image_w) / 600)
         c1, c2 = (coor[0], coor[1]), (coor[2], coor[3])
@@ -173,16 +181,15 @@ if __name__ == "__main__":
     check_point = flow.train.CheckPoint()
     check_point.load(args.model_load_dir)
 
-    # images_path_list = args.image_path_list
+    images_path_list = args.image_path_list
+    # initial network
 
-    for step in range(args.total_batch_num):
+    for i in range(len(images_path_list)):
         start = time.time()
         yolo_pos, yolo_prob, origin_image_info = yolo_user_op_eval_job().get()
         end = time.time()
-        batch_list = batch_boxes(yolo_pos, yolo_prob, origin_image_info)
-
-        # for i in range(len(images_path_list)):
-        #     bboxes = np.concatenate([coors, scores[:, np.newaxis], classes[:, np.newaxis]], axis=-1)
-        #     draw_and_save_detected_result(images_path_list[i], )
-        print("batch_list", batch_list)
-        print('cost time: %.4f ms' % (1000 * (end-start)))
+        bboxes = batch_boxes(yolo_pos, yolo_prob, origin_image_info)
+        draw_and_save_detected_result(images_path_list[i], bboxes)
+        print('%s >>> bboxes:' % images_path_list[i], bboxes)
+        print('cost time: %.4f ms\n--------------------------------------------------------------'
+              % (1000 * (end-start)))
