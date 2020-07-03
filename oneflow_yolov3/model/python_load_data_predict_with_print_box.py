@@ -7,6 +7,7 @@ import os
 from yolo_net import YoloPredictNet
 from data_preprocess import image_preprocess_v2
 import oneflow_yolov3
+from utils import draw_and_save_detected_result
 from oneflow_yolov3.ops.yolo_decode import yolo_predict_decoder
 
 parser = argparse.ArgumentParser(description="flags for predict")
@@ -14,10 +15,8 @@ parser.add_argument("-g", "--gpu_num_per_node", type=int, default=1, required=Fa
 parser.add_argument("-load", "--model_load_dir", type=str, required=True)
 parser.add_argument("-image_height", "--image_height", type=int, default=608, required=False)
 parser.add_argument("-image_width", "--image_width", type=int, default=608, required=False)
-parser.add_argument("-img_list", "--image_list_path", type=str, required=True)
-parser.add_argument("-label_to_name_file", "--label_to_name_file", type=str, required=True)
+parser.add_argument("-label_path", "--label_path", type=str, required=True)
 parser.add_argument("-batch_size", "--batch_size", type=int, default=1, required=False)
-parser.add_argument("-total_batch_num", "--total_batch_num", type=int, default=308, required=False)
 parser.add_argument("-loss_print_steps", "--loss_print_steps", type=int, default=1, required=False)
 parser.add_argument("-use_tensorrt", "--use_tensorrt", type=int, default=0, required=False)
 parser.add_argument("-image_path_list", "--image_path_list", type=str, nargs='+', required=True)
@@ -27,7 +26,7 @@ args = parser.parse_args()
 
 assert os.path.exists(args.model_load_dir)
 assert os.path.exists(args.image_path_list[0])
-assert os.path.exists(args.label_to_name_file)
+assert os.path.exists(args.label_path)
 
 
 flow.config.load_library(oneflow_yolov3.lib_path())
@@ -41,7 +40,7 @@ if args.use_tensorrt != 0:
 label_2_name = []
 nms = True
 
-with open(args.label_to_name_file,'r') as f:
+with open(args.label_path,'r') as f:
   label_2_name = f.readlines()
 
 
@@ -113,24 +112,20 @@ def yolo_user_op_eval_job(images=input_blob_def_dict["images"], origin_image_inf
 if __name__ == "__main__":
     flow.config.gpu_device_num(args.gpu_num_per_node)
     flow.env.ctrl_port(9789)
-
     check_point = flow.train.CheckPoint()
-    if not args.model_load_dir:
-        check_point.init()
-    else:
-        check_point.load(args.model_load_dir)
-    fmt_str = "{:>12}   {:>12.10f} {:>12.10f} {:>12.3f}"
-    print("{:>12}   {:>12}  {:>12}  {:>12}".format("iter",  "reg loss value", "cls loss value", "time"))
-    global cur_time
-    cur_time = time.time()
+    check_point.load(args.model_load_dir)
+
+    image_list = args.image_path_list
+    coco_label_path = args.label_path
 
     image_list_len = len(args.image_path_list)
-    for step in range(args.total_batch_num):
-        img_path = args.image_path_list[step % image_list_len]
-        images, origin_image_info = image_preprocess_v2(img_path, args.image_height, args.image_width)
+    for i in range(len(image_list)):
+        images, origin_image_info = image_preprocess_v2(image_list[i], args.image_height, args.image_width)
         start = time.time()
         yolo_pos, yolo_prob, origin_image_info = yolo_user_op_eval_job(images, origin_image_info).get()
         end = time.time()
-        batch_list = batch_boxes(yolo_pos, yolo_prob, origin_image_info)
-        print("batch_list", batch_list)
-        print('cost time: %.4f ms' % (1000 * (end - start)))
+        bboxes = batch_boxes(yolo_pos, yolo_prob, origin_image_info)
+        draw_and_save_detected_result(image_list[i], bboxes, coco_label_path)
+        print('%s >>> bboxes:' % image_list[i], bboxes)
+        print('cost time: %.4f ms\n--------------------------------------------------------------'
+              % (1000 * (end - start)))
