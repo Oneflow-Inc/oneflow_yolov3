@@ -1,5 +1,4 @@
 model_dir=of_model/yolov3_model_python/
-# image_list_file=data/with_dir_data_names
 export ONEFLOW_DEBUG_MODE=""
 
 python3 oneflow_yolov3/model/predict_with_print_box.py \
