@@ -43,9 +43,9 @@ label_2_name=[]
 with open(args.label_to_name_file,'r') as f:
   label_2_name=f.readlines()
 
-nms=True
+nms = True
 
-print("nms:", nms)
+
 def print_detect_box(positions, probs):
     if nms==True:
         batch_size = positions.shape[0]
@@ -59,6 +59,7 @@ def print_detect_box(positions, probs):
             for i in range(1, 81):
                 if positions[0][j][1]!=0 and positions[0][j][2]!=0 and probs[0][j][i]!=0:
                     print(label_2_name[i-1], " ", probs[0][j][i]*100,"%", "  ",positions[0][j][0], " ", positions[0][j][1], " ", positions[0][j][2], " ", positions[0][j][3])
+
 
 def xywh_2_x1y1x2y2(x, y, w, h, origin_image):
     x1  = (x - w / 2.) * origin_image[1]
@@ -93,16 +94,17 @@ def batch_boxes(positions, probs, origin_image_info):
             batch_list.append(np.asarray(box_list))
     return batch_list
 
+
 input_blob_def_dict = {
     "images" : flow.FixedTensorDef((args.batch_size, 3, args.image_height, args.image_width), dtype=flow.float),
     "origin_image_info" : flow.FixedTensorDef((args.batch_size, 2), dtype=flow.int32),
 }
 
 
-@flow.global_function(func_config)
 def yolo_user_op_eval_job(images=input_blob_def_dict["images"], origin_image_info=input_blob_def_dict["origin_image_info"]):
     yolo_pos_result, yolo_prob_result = YoloPredictNet(images, origin_image_info, trainable=False)
     return yolo_pos_result, yolo_prob_result, origin_image_info
+
 
 if __name__ == "__main__":
     flow.config.gpu_device_num(args.gpu_num_per_node)
