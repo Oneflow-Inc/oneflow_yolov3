@@ -33,8 +33,7 @@ nms = True
 
 @flow.global_function(func_config)
 def yolo_user_op_eval_job():
-    images, origin_image_info = yolo_predict_decoder(args.batch_size, args.image_height,
-                                                     args.image_width, args.image_path_list, "yolo")
+    images, origin_image_info = yolo_predict_decoder(args.batch_size, args.image_height, args.image_width, args.image_path_list, "yolo")
     yolo_pos_result, yolo_prob_result = YoloPredictNet(images, origin_image_info, trainable=False)
     return yolo_pos_result, yolo_prob_result, origin_image_info
 
