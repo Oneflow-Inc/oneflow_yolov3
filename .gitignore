@@ -3,3 +3,7 @@ log
 of_model
 dist
 *.egg-info
+*.so
+.idea
+*.whl
+*__pycache__/
