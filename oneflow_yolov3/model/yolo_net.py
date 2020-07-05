@@ -1,7 +1,7 @@
 import oneflow as flow
 import oneflow.core.operator.op_conf_pb2 as op_conf_util
 from oneflow_yolov3.ops.upsample_nearest import upsample_nearest
-from oneflow_yolov3.ops.yolo_detect import yolo_detect
+from oneflow_yolov3.ops.yolo_detect import yolo_detect,yolo_box_diff, yolo_prob_loss,logistic
 from oneflow_yolov3.ops.yolo_nms import yolo_nms
 layer_number = 1
 route_dict = {}
@@ -206,17 +206,17 @@ def YoloTrainLayer(in_blob, gt_bbox_blob, gt_label_blob, gt_valid_num_blob, i):
   position = flow.slice(reshape_blob, [None, 0, 0], [None, -1, 4], name = layer_name+'-yolo_slice_pos')
   xy = flow.slice(position, [None, 0, 0], [None, -1, 2], name = layer_name + '-yolo_slice_xy')
   wh = flow.slice(position, [None, 0, 2], [None, -1, 2], name = layer_name + '-yolo_slice_wh')
-  xy = flow.math.logistic(xy, name = layer_name + '-yolo_ligistic_xy')
+  xy = logistic(xy, name = layer_name + '-yolo_ligistic_xy')
   #xy = flow.math.sigmoid(xy, name = layer_name + '-yolo_ligistic_xy')
   position = flow.concat([xy, wh], axis=2, name = layer_name + '-yolo_concat')
   confidence = flow.slice(reshape_blob, [None, 0, 4], [None, -1, 81], name = layer_name + '-yolo_slice_prob')
-  confidence = flow.math.logistic(confidence, name = layer_name+ '-yolo_ligistic_prob')
+  confidence = logistic(confidence, name = layer_name+ '-yolo_ligistic_prob')
   #confidence = flow.math.sigmoid(confidence, name = layer_name+ '-yolo_ligistic_prob')
 
   objness = flow.slice(confidence, [None, 0, 0], [None, -1, 1], name = layer_name + '-yolo_slice_objness')
   clsprob = flow.slice(confidence, [None, 0, 1], [None, -1, 80], name = layer_name + '-yolo_slice_clsprob')
-  bbox_loc_diff, pos_inds, pos_cls_label, neg_inds, valid_num = flow.detection.yolo_box_diff(position, gt_bbox_blob, gt_label_blob, gt_valid_num_blob, image_height=yolo_box_diff_conf[i]['image_height'], image_width=yolo_box_diff_conf[i]['image_width'], layer_height=yolo_box_diff_conf[i]['layer_height'], layer_width=yolo_box_diff_conf[i]['layer_width'], ignore_thresh=yolo_box_diff_conf[i]['ignore_thresh'], truth_thresh=yolo_box_diff_conf[i]['truth_thresh'], box_mask=yolo_box_diff_conf[i]['box_mask'], anchor_boxes_size= yolo_box_diff_conf[i]['anchor_boxes_size'], name = layer_name +'-yolo_box_loss') #placeholder for yolobox layer
-  bbox_objness_out, bbox_clsprob_out = flow.detection.yolo_prob_loss(objness, clsprob, pos_inds, pos_cls_label, neg_inds, valid_num, num_classes = 80, name = layer_name +'-yolo_prob_loss')
+  bbox_loc_diff, pos_inds, pos_cls_label, neg_inds, valid_num = yolo_box_diff(position, gt_bbox_blob, gt_label_blob, gt_valid_num_blob, image_height=yolo_box_diff_conf[i]['image_height'], image_width=yolo_box_diff_conf[i]['image_width'], layer_height=yolo_box_diff_conf[i]['layer_height'], layer_width=yolo_box_diff_conf[i]['layer_width'], ignore_thresh=yolo_box_diff_conf[i]['ignore_thresh'], truth_thresh=yolo_box_diff_conf[i]['truth_thresh'], box_mask=yolo_box_diff_conf[i]['box_mask'], anchor_boxes_size= yolo_box_diff_conf[i]['anchor_boxes_size'], name = layer_name +'-yolo_box_loss') #placeholder for yolobox layer
+  bbox_objness_out, bbox_clsprob_out = yolo_prob_loss(objness, clsprob, pos_inds, pos_cls_label, neg_inds, valid_num, num_classes = 80, name = layer_name +'-yolo_prob_loss')
   bbox_loss = flow.concat([bbox_loc_diff, bbox_objness_out, bbox_clsprob_out], axis=2, name = layer_name + '-loss_concat')
   bbox_loss_reduce_sum = flow.math.reduce_sum(bbox_loss, axis = [1,2], name = layer_name+ '-bbox_loss_reduce_sum')
   return bbox_loss_reduce_sum

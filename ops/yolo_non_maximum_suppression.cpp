@@ -12,9 +12,7 @@ REGISTER_USER_OP("yolo_nms")
     .SetTensorDescInferFn([](user_op::InferContext* ctx) -> Maybe<void> {
       Shape* bbox_shape = ctx->Shape4ArgNameAndIndex("bbox", 0);
       DimVector dim_vec(bbox_shape->NumAxes() - 1);
-      FOR_RANGE(size_t, i, 0, dim_vec.size()) {
-        dim_vec[i] = bbox_shape->At(i);
-      }
+      FOR_RANGE(size_t, i, 0, dim_vec.size()) { dim_vec[i] = bbox_shape->At(i); }
       *ctx->Shape4ArgNameAndIndex("out", 0) = Shape(dim_vec);
       *ctx->Dtype4ArgNameAndIndex("out", 0) = DataType::kInt8;
       return Maybe<void>::Ok();
@@ -25,10 +23,10 @@ REGISTER_USER_OP("yolo_nms")
     })
     .SetGetSbpFn([](user_op::SbpContext* ctx) -> Maybe<void> {
       ctx->NewBuilder()
-        .Split(user_op::OpArg("bbox", 0), 0)
-        .Split(user_op::OpArg("probs", 0), 0)
-        .Split(user_op::OpArg("out", 0), 0)
-        .Build();
+          .Split(user_op::OpArg("bbox", 0), 0)
+          .Split(user_op::OpArg("probs", 0), 0)
+          .Split(user_op::OpArg("out", 0), 0)
+          .Build();
 
       return Maybe<void>::Ok();
     });
