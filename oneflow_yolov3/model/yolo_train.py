@@ -14,17 +14,20 @@ parser.add_argument("-gpu_num_per_node", "--gpu_num_per_node", type=int, default
 parser.add_argument("-batch_size", "--batch_size", type=int, default=1, required=False)
 parser.add_argument("-image_height", "--image_height", type=int, default=608, required=False)
 parser.add_argument("-image_width", "--image_width", type=int, default=608, required=False)
-parser.add_argument("-classes", "--classes", type=int, default=1, required=False)
-parser.add_argument("-num_boxes", "--num_boxes", type=int, default=1, required=False)
+parser.add_argument("-classes", "--classes", type=int, default=80, required=False)
+parser.add_argument("-num_boxes", "--num_boxes", type=int, default=90, required=False)
 parser.add_argument("-hue", "--hue", type=float, default=0.1, required=False)
 parser.add_argument("-jitter", "--jitter", type=float, default=0.3, required=False)
 parser.add_argument("-saturation", "--saturation", type=float, default=1.5, required=False)
 parser.add_argument("-exposure", "--exposure", type=float, default=1.5, required=False)
 parser.add_argument("-image_path_file", "--image_path_file", type=str, required=True)
+parser.add_argument("-total_batch_num", "--total_batch_num", type=int, default=10, required=False)
+parser.add_argument("-base_lr", "--base_lr", type=float, default=0.001, required=False)
+
 
 args = parser.parse_args()
 
-
+flow.config.gpu_device_num(args.gpu_num_per_node)
 flow.config.load_library(oneflow_yolov3.lib_path())
 func_config = flow.FunctionConfig()
 func_config.default_distribute_strategy(flow.distribute.consistent_strategy())
@@ -56,6 +59,6 @@ if __name__ == "__main__":
     cur_time = time.time()
 
 
-    for step in range(4):
+    for step in range(args.total_batch_num):
         yolo0_loss, yolo1_loss, yolo2_loss = yolo_train_job().get()
         print(yolo0_loss.mean())
