@@ -23,6 +23,7 @@ parser.add_argument("-exposure", "--exposure", type=float, default=1.5, required
 parser.add_argument("-image_path_file", "--image_path_file", type=str, required=True)
 parser.add_argument("-total_batch_num", "--total_batch_num", type=int, default=10, required=False)
 parser.add_argument("-base_lr", "--base_lr", type=float, default=0.001, required=False)
+parser.add_argument("-snapshot_num", "--num_of_batches_in_snapshot", type=int, required=True)
 
 
 args = parser.parse_args()
@@ -32,7 +33,7 @@ flow.config.load_library(oneflow_yolov3.lib_path())
 func_config = flow.FunctionConfig()
 func_config.default_distribute_strategy(flow.distribute.consistent_strategy())
 func_config.default_data_type(flow.float)
-func_config.train.primary_lr(0.001)
+func_config.train.primary_lr(args.base_lr)
 func_config.train.model_update_conf(dict(naive_conf={}))
 
 @flow.global_function(func_config)
@@ -54,11 +55,13 @@ if __name__ == "__main__":
     else:
         check_point.load(args.model_load_dir)
     fmt_str = "{:>12}   {:>12.10f} {:>12.10f} {:>12.3f}"
-    print("{:>12}   {:>12}  {:>12}  {:>12}".format("iter",  "reg loss value", "cls loss value", "time"))
+    print("{:>12}   {:>12}  {:>12}  {:>12}".format("iter",  "loss value", "time"))
     global cur_time
     cur_time = time.time()
 
 
     for step in range(args.total_batch_num):
         yolo0_loss, yolo1_loss, yolo2_loss = yolo_train_job().get()
-        print(yolo0_loss.mean())
+        print(np.abs(yolo0_loss).mean())
+        if (step + 1) % args.num_of_batches_in_snapshot == 0:
+            check_point.save(args.model_save_dir + "/snapshot_" + str(step//args.num_of_batches_in_snapshot))
