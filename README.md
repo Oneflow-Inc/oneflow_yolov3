@@ -8,8 +8,11 @@ Yolov3 in OneFlow
 ```
 bash scripts/test.sh
 ```
+执行此脚本，将cpp代码中自定义的op算子编译成可调用执行的.so文件，您将在项目路径下看到：libdarknet.so和liboneflow_yolov3.so
+
 ## Run Yolov3 inference
-1. 下载模型到项目root目录下，解压  
+
+1. 下载模型到项目root目录下，解压并放置文件夹of_model于项目root目录下。
 链接:https://pan.baidu.com/s/16nSqnISE7U6vhcGAKaB0Rw  密码:1vhh
 2. 运行
 ```

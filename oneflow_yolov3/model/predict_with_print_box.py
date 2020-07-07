@@ -16,7 +16,9 @@ parser.add_argument("-label_path", "--label_path", type=str, required=True)
 parser.add_argument("-batch_size", "--batch_size", type=int, default=1, required=False)
 parser.add_argument("-loss_print_steps", "--loss_print_steps", type=int, default=1, required=False)
 parser.add_argument("-use_tensorrt", "--use_tensorrt", type=int, default=0, required=False)
-parser.add_argument("-image_path_list", "--image_path_list", type=str, nargs='+', required=True)
+parser.add_argument("-input_dir", "--input_dir", type=str, required=False)
+parser.add_argument("-output_dir", "--output_dir", type=str, default='data/result', required=False)
+parser.add_argument("-image_paths", "--image_paths", type=str, nargs='+', required=False)
 
 args = parser.parse_args()
 
@@ -34,31 +36,29 @@ nms = True
 @flow.global_function(func_config)
 def yolo_user_op_eval_job():
     images, origin_image_info = yolo_predict_decoder(args.batch_size, args.image_height,
-                                                     args.image_width, args.image_path_list, "yolo")
+                                                     args.image_width, args.image_paths, "yolo")
     yolo_pos_result, yolo_prob_result = YoloPredictNet(images, origin_image_info, trainable=False)
     return yolo_pos_result, yolo_prob_result, origin_image_info
 
 
 if __name__ == "__main__":
     assert os.path.exists(args.model_load_dir)
-    assert os.path.exists(args.image_path_list[0])
+    assert args.input_dir or os.path.exists(args.image_paths[0])
     assert os.path.exists(args.label_path)
 
-    flow.config.gpu_device_num(args.gpu_num_per_node)
-    flow.env.ctrl_port(9789)
+    if args.input_dir and os.path.exists(args.input_dir):
+        args.image_paths = [args.input_dir + os.sep + path for path in os.listdir(args.input_dir)]
+
+    flow.config.gpu_device_num(args.gpu_num_per_node)  # set gpu num
     check_point = flow.train.CheckPoint()
     check_point.load(args.model_load_dir)
 
-    image_list = args.image_path_list
-    coco_label_path = args.label_path
-
-    for i in range(len(image_list)):
+    for i in range(len(args.image_paths)):
         start = time.time()
         yolo_pos, yolo_prob, origin_image_info = yolo_user_op_eval_job().get()
-        end = time.time()
-        bboxes = utils.postprocess_boxes(yolo_pos, yolo_prob, origin_image_info[0], 0.3)
-        # bboxes = batch_boxes(yolo_pos, yolo_prob, origin_image_info)
-        utils.save_detected_result(image_list[i], bboxes, coco_label_path)
-        print('%s >>> bboxes:' % image_list[i], bboxes)
-        print('cost time: %.4f ms\n--------------------------------------------------------------'
-              % (1000 * (end - start)))
+        print('cost: %.4f ms' % (1000 * (time.time() - start)))
+        bboxes = utils.postprocess_boxes(yolo_pos[0], yolo_prob[0], origin_image_info[0], 0.3)
+        utils.save_detected_images([args.image_paths[i]], [bboxes], args.label_path, args.output_dir)
+        print('%s >> bboxes:' % args.image_paths[i], bboxes,
+              '\n------------------------------------------------------------------------')
+
