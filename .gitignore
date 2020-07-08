@@ -7,3 +7,4 @@ dist
 .idea
 *.whl
 *__pycache__/
+*.jpg
