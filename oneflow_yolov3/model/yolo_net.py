@@ -281,7 +281,7 @@ def YoloNetBody(in_blob, gt_bbox_blob=None, gt_label_blob=None,gt_valid_num_blob
     print(yolo_probs.shape)
     if nms:
       yolo_probs_transpose = flow.transpose(yolo_probs, perm=[0, 2, 1]) #(b, 81, n_boxes)
-      pre_nms_top_k_inds = flow.math.top_k(yolo_probs_transpose,k=20000) #（b, 81, n_boxes）
+      pre_nms_top_k_inds = flow.math.top_k(yolo_probs_transpose,k=yolo_probs_transpose.shape[-1]) #（b, 81, n_boxes）
       pre_nms_top_k_inds1 = flow.reshape(pre_nms_top_k_inds, shape=(pre_nms_top_k_inds.shape[0], pre_nms_top_k_inds.shape[1]*pre_nms_top_k_inds.shape[2]), name="reshape1")#(b, 81*n_boxes)
       gathered_yolo_positions = flow.gather(yolo_positions, pre_nms_top_k_inds1, axis=1, batch_dims=1) #(b, 81*n_boxes, 4)
       gathered_yolo_positions = flow.reshape(gathered_yolo_positions, shape=(gathered_yolo_positions.shape[0], yolo_probs.shape[2], yolo_positions.shape[1], yolo_positions.shape[2]), name="reshape2") #(b, 81, n_boxes, 4)
