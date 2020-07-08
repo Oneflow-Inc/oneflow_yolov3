@@ -3,8 +3,14 @@ Yolov3 in OneFlow
 
 ## For development
 1. clone this repo
+
 2. 需确认在当前为python3环境，且可以`import oneflow`成功
-3. 在项目root目录下，执行:
+
+3. 安装python依赖库
+```shell
+   pip install -r requirements.txt
+```
+4. 在项目root目录下，执行:
 ```
 bash scripts/test.sh
 ```
@@ -56,3 +62,32 @@ train decoder中调用load_data_detection函数
 9. random flip image and box  
 10. randomize_boxes   
 11. correct_boxes  
+
+
+
+# 用COCO数据集训练
+
+## 1.准备数据集
+### 数据集
+数据集主要包含训练集和验证集图片，将解压后的train2014和val2014放在data/COCO/images目录下（或ln创建软链接将images链接至数据集存放路径）
+
+### 资源文件
+```
+wget -c https://pjreddie.com/media/files/coco/labels.tgz
+wget -c https://pjreddie.com/media/files/coco/5k.part
+wget -c https://pjreddie.com/media/files/coco/trainvalno5k.part
+wget -c https://pjreddie.com/media/files/coco/labels.tgz
+```
+
+### 数据准备
+在data/COCO目录下执行脚本：
+```
+sh get_coco_dataset.sh
+```
+执行脚本将自动解压缩labels.tgz文件，并在当前目录下生成5k.txt和trainvalno5k.txt
+
+## 训练
+修改yolo_train.sh脚本中的参数，令：--image_path_file="data/COCO/trainvalno5k.txt"并执行：
+```
+sh yolo_train.sh
+```
