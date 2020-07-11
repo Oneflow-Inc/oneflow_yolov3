@@ -8,14 +8,15 @@ route_dict = {}
 yolo_pos_result = []
 yolo_prob_result = []
 yolo_loss_result = []
+valid_num_result = []
 
 num_classes = 80
 ignore_thresh = 0.7
 truth_thresh = 1.0
 image_height = 608
 image_width = 608
-max_out_boxes = 90
-nms = True
+max_out_boxes = None
+nms = False
 #nms=False
 nms_threshold = 0.45
 
@@ -203,7 +204,6 @@ def YoloPredictLayer(in_blob, origin_image_info, i, trainable):
   confidence = flow.math.sigmoid(confidence, name = layer_name+ '-yolo_ligistic_prob')
   #[out_bbox, out_probs, valid_num] = flow.detection.yolo_detect(bbox=position, probs=confidence, origin_image_info=origin_image_info, image_height=608, image_width=608, layer_height=yolo_conf[i]['layer_height'], layer_width=yolo_conf[i]['layer_width'], prob_thresh=0.5, num_classes=80, max_out_boxes = max_out_boxes, anchor_boxes=yolo_conf[i]['anchor_boxes_size'])
   [out_bbox, out_probs, valid_num] = yolo_detect(bbox=position, probs=confidence, origin_image_info=origin_image_info, image_height=608, image_width=608, layer_height=yolo_conf[i]['layer_height'], layer_width=yolo_conf[i]['layer_width'], prob_thresh=0.5, num_classes=80, max_out_boxes = max_out_boxes, anchor_boxes=yolo_conf[i]['anchor_boxes_size'], name=str(layer_name)+"yolo_detect")
-  print("out_bbox.shape",out_bbox.shape)
   return out_bbox, out_probs, valid_num
 
 
@@ -271,14 +271,11 @@ def YoloNetBody(in_blob, gt_bbox_blob=None, gt_label_blob=None,gt_valid_num_blob
       yolo_position, yolo_prob, valid_num = YoloPredictLayer(yolo_blob, origin_image_info, i, trainable=trainable)
       yolo_pos_result.append(yolo_position)
       yolo_prob_result.append(yolo_prob)
+      valid_num_result.append(valid_num)
     else:
       loss = YoloTrainLayer(yolo_blob, gt_bbox_blob, gt_label_blob, gt_valid_num_blob, i)
       yolo_loss_result.append(loss)
   if trainable == False:
-    yolo_positions = flow.concat(yolo_pos_result, axis=1, name="concat_pos") #(b, n_boxes, 4)
-    yolo_probs = flow.concat(yolo_prob_result, axis=1) #(b, n_boxes, 81)
-    print(yolo_positions.shape)
-    print(yolo_probs.shape)
     if nms:
       yolo_probs_transpose = flow.transpose(yolo_probs, perm=[0, 2, 1]) #(b, 81, n_boxes)
       pre_nms_top_k_inds = flow.math.top_k(yolo_probs_transpose,k=yolo_probs_transpose.shape[-1]) #（b, 81, n_boxes）
@@ -293,7 +290,7 @@ def YoloNetBody(in_blob, gt_bbox_blob=None, gt_label_blob=None,gt_valid_num_blob
       final_probs = flow.math.multiply(gathered_yolo_probs, nms_val_cast) #(b, 81, 270)
       return final_boxes, final_probs
 
-    return yolo_positions, yolo_probs
+    return yolo_pos_result, yolo_prob_result, valid_num_result
   else:
     return yolo_loss_result
 
@@ -304,8 +301,8 @@ def YoloPredictNet(data, origin_image_info, trainable=False):
   #data = flow.transpose(data, perm=[0, 3, 1, 2])
   blob = conv_unit(data, num_filter=32, kernel=[3,3], stride=[1,1], pad="same", data_format="NCHW", use_bias=False, trainable=trainable, prefix='yolo-layer' + str(layer_number))
   blob = DarknetNetConvXBody(blob, trainable, lambda x: x)
-  yolo_pos_result, yolo_prob_result=YoloNetBody(in_blob=blob, origin_image_info=origin_image_info, trainable=trainable)
-  return yolo_pos_result, yolo_prob_result
+  yolo_pos_result, yolo_prob_result, valid_num_result=YoloNetBody(in_blob=blob, origin_image_info=origin_image_info, trainable=trainable)
+  return yolo_pos_result, yolo_prob_result, valid_num_result
 
 
 def YoloTrainNet(data, gt_box, gt_label,gt_valid_num, trainable=True):
