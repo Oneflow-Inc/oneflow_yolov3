@@ -8,3 +8,6 @@ dist
 *.whl
 *__pycache__/
 *.jpg
+data/COCO/
+data/VOC/
+save_model/

@@ -54,15 +54,15 @@ if __name__ == "__main__":
         check_point.init()
     else:
         check_point.load(args.model_load_dir)
-    fmt_str = "{:>12}  {:>12.10f} {:>12.3f}"
-    print("{:>12}   {:>12}  {:>12}".format("iter",  "loss value", "time"))
+    fmt_str = "{:>12}  {:>12.4f}  {:>12.4f} {:>12.4f} {:>12.3f}"
+    print("{:>12}      {:>12}      {:>12}".format("iter",  "losses value", "time"))
     global cur_time
     cur_time = time.time()
 
 
     for step in range(args.total_batch_num):
         yolo0_loss, yolo1_loss, yolo2_loss = yolo_train_job().get()
-        print(fmt_str.format(step, np.abs(yolo0_loss).mean(), time.time()-cur_time))
+        print(fmt_str.format(step, np.abs(yolo0_loss).mean(), np.abs(yolo1_loss).mean(), np.abs(yolo2_loss).mean(), time.time()-cur_time))
         cur_time = time.time()
         if (step + 1) % args.num_of_batches_in_snapshot == 0:
             check_point.save(args.model_save_dir + "/snapshot_" + str(step//args.num_of_batches_in_snapshot))
