@@ -43,8 +43,7 @@ REGISTER_USER_OP("yolo_detect")
       CHECK_LE_OR_RETURN(max_out_boxes, bbox_shape->At(1));
       out_bbox_shape->Set(1, max_out_boxes);
       out_probs_shape->Set(1, max_out_boxes);
-      valid_num_shape->Set(0, bbox_shape->At(0));
-      valid_num_shape->Set(1, 2);
+      *valid_num_shape = Shape({bbox_shape->At(0)});
       return Maybe<void>::Ok();
     })
     .SetBatchAxisInferFn([](user_op::BatchAxisContext* ctx) -> Maybe<void> {
