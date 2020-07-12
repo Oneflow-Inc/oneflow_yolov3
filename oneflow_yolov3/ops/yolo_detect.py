@@ -46,6 +46,7 @@ def yolo_box_diff(bbox, gt_boxes, gt_labels, gt_valid_num, image_height, image_w
         .Output("pos_cls_label")
         .Output("neg_inds")
         .Output("valid_num")
+        .Output("statistics_info")
         .Attr("image_height", image_height, "AttrTypeInt32")
         .Attr("image_width", image_width, "AttrTypeInt32")
         .Attr("layer_height", layer_height, "AttrTypeInt32")

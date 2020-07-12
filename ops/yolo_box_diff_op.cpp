@@ -12,6 +12,7 @@ REGISTER_USER_OP("yolo_box_diff")
     .Output("pos_cls_label")
     .Output("neg_inds")
     .Output("valid_num")
+    .Output("statistics_info")
     .Attr("image_height", UserOpAttrType::kAtInt32)
     .Attr("image_width", UserOpAttrType::kAtInt32)
     .Attr("layer_height", UserOpAttrType::kAtInt32)
@@ -59,6 +60,10 @@ REGISTER_USER_OP("yolo_box_diff")
       *valid_num_desc->mut_shape() = Shape({num_images, 2});
       *valid_num_desc->mut_data_type() = DataType::kInt32;
 
+      user_op::TensorDesc* statistics_info_desc = ctx->TensorDesc4ArgNameAndIndex("statistics_info", 0);
+      *statistics_info_desc->mut_shape() = Shape({num_images, 5}); //avg_iou, recall, recall75, count, class_count 
+      *statistics_info_desc->mut_data_type() = DataType::kFloat;
+
       return Maybe<void>::Ok();
     })
     .SetInputArgModifyFn([](user_op::GetInputArgModifier GetInputArgModifierFn,
@@ -78,6 +83,7 @@ REGISTER_USER_OP("yolo_box_diff")
       *ctx->BatchAxis4ArgNameAndIndex("pos_inds", 0) = *ctx->BatchAxis4ArgNameAndIndex("bbox", 0);
       *ctx->BatchAxis4ArgNameAndIndex("neg_inds", 0) = *ctx->BatchAxis4ArgNameAndIndex("bbox", 0);
       *ctx->BatchAxis4ArgNameAndIndex("valid_num", 0) = *ctx->BatchAxis4ArgNameAndIndex("bbox", 0);
+      *ctx->BatchAxis4ArgNameAndIndex("statistics_info", 0) = *ctx->BatchAxis4ArgNameAndIndex("bbox", 0);
       return Maybe<void>::Ok();
     })
     .SetGetSbpFn([](user_op::SbpContext* ctx) -> Maybe<void> {
