@@ -142,7 +142,7 @@ class YoloDetectGpuKernel final : public user_op::OpKernel {
     Memcpy<DeviceType::kGPU>(
         ctx->device_ctx(), reinterpret_cast<void*>(buf_manager.AnchorBoxesTmpPtr()),
         reinterpret_cast<void*>(anchor_boxes.data()),
-        GetCudaAlignedSize(buf_manager.AnchorBoxesTmpElemCnt() * sizeof(int32_t)),
+        buf_manager.AnchorBoxesTmpElemCnt() * sizeof(int32_t),
         cudaMemcpyHostToDevice);
 
     FOR_RANGE(int32_t, im_index, 0, bbox->shape().At(0)) {
