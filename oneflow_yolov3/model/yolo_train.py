@@ -3,7 +3,7 @@ import oneflow.core.operator.op_conf_pb2 as op_conf_util
 import time
 import argparse
 import numpy as np
-import os
+import math
 from yolo_net import YoloTrainNet
 import oneflow_yolov3
 from oneflow_yolov3.ops.yolo_decode import yolo_train_decoder
@@ -15,6 +15,7 @@ parser.add_argument("-batch_size", "--batch_size", type=int, default=1, required
 parser.add_argument("-image_height", "--image_height", type=int, default=608, required=False)
 parser.add_argument("-image_width", "--image_width", type=int, default=608, required=False)
 parser.add_argument("-classes", "--classes", type=int, default=80, required=False)
+parser.add_argument("-total_images", "--total_images", type=int, default=117264, required=False)
 parser.add_argument("-num_boxes", "--num_boxes", type=int, default=90, required=False)
 parser.add_argument("-hue", "--hue", type=float, default=0.1, required=False)
 parser.add_argument("-jitter", "--jitter", type=float, default=0.3, required=False)
@@ -36,6 +37,7 @@ func_config.default_data_type(flow.float)
 func_config.train.primary_lr(args.base_lr)
 func_config.train.model_update_conf(dict(naive_conf={}))
 
+
 @flow.global_function(func_config)
 def yolo_train_job():
     images, ground_truth, gt_valid_num = yolo_train_decoder(args.batch_size, args.image_height, args.image_width, args.classes, args.num_boxes, args.hue, args.jitter, args.saturation, args.exposure, args.dataset_dir, "yolo")
@@ -47,6 +49,7 @@ def yolo_train_job():
     flow.losses.add_loss(yolo_loss_result[2])
     return yolo_loss_result, statistics_info_result
 
+
 def process_statistics_info(layer_name, statistics_info):
     count = statistics_info[:, 3].sum()
     class_count = statistics_info[:, 4].sum()
@@ -55,6 +58,7 @@ def process_statistics_info(layer_name, statistics_info):
     avg_recall_75 = statistics_info[:, 2].sum()/count if count!=0 else 0
 
     print(layer_name, "Avg IOU: ", avg_iou, ".5 Recall:", avg_recall_5, ".75 Recall:", avg_recall_75, "count:", count)
+
 
 if __name__ == "__main__":
     check_point = flow.train.CheckPoint()
@@ -67,13 +71,15 @@ if __name__ == "__main__":
     global cur_time
     cur_time = time.time()
 
-
-    for step in range(args.num_epoch):
-        yolo_loss_result, statistics_info_result = yolo_train_job().get()
-        process_statistics_info("Region 82", statistics_info_result[0].ndarray())
-        process_statistics_info("Region 94", statistics_info_result[1].ndarray())
-        process_statistics_info("Region 106", statistics_info_result[2].ndarray())
-        print(fmt_str.format(step, np.abs(yolo_loss_result[0]).mean(), np.abs(yolo_loss_result[1]).mean(), np.abs(yolo_loss_result[2]).mean(), time.time()-cur_time))
-        cur_time = time.time()
-        if (step + 1) % args.save_frequency == 0:
-            check_point.save(args.model_save_dir + "/snapshot_" + str(step//args.save_frequency))
+    iter_num = math.ceil(args.total_images/args.batch_size)
+    for epoch in range(args.num_epoch):
+        for iter in range(iter_num):
+            yolo_loss_result, statistics_info_result = yolo_train_job().get()
+            process_statistics_info("Region 82", statistics_info_result[0].ndarray())
+            process_statistics_info("Region 94", statistics_info_result[1].ndarray())
+            process_statistics_info("Region 106", statistics_info_result[2].ndarray())
+            print(fmt_str.format(iter, np.abs(yolo_loss_result[0]).mean(), np.abs(yolo_loss_result[1]).mean(),
+                                 np.abs(yolo_loss_result[2]).mean(), time.time() - cur_time))
+            cur_time = time.time()
+        if (epoch + 1) % args.save_frequency == 0:
+            check_point.save(args.model_save_dir + "/yolov3_snapshot_" + str(epoch//args.save_frequency))
