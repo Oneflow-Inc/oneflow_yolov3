@@ -20,10 +20,10 @@ parser.add_argument("-hue", "--hue", type=float, default=0.1, required=False)
 parser.add_argument("-jitter", "--jitter", type=float, default=0.3, required=False)
 parser.add_argument("-saturation", "--saturation", type=float, default=1.5, required=False)
 parser.add_argument("-exposure", "--exposure", type=float, default=1.5, required=False)
-parser.add_argument("-image_path_file", "--image_path_file", type=str, required=True)
-parser.add_argument("-total_batch_num", "--total_batch_num", type=int, default=10, required=False)
+parser.add_argument("-dataset_dir", "--dataset_dir", type=str, required=True)
+parser.add_argument("-num_epoch", "--num_epoch", type=int, default=10, required=False)
 parser.add_argument("-base_lr", "--base_lr", type=float, default=0.001, required=False)
-parser.add_argument("-snapshot_num", "--num_of_batches_in_snapshot", type=int, required=True)
+parser.add_argument("-save_frequency", "--save_frequency", type=int, required=True)
 parser.add_argument("-save", "--model_save_dir", type=str, required=False)
 
 args = parser.parse_args()
@@ -38,7 +38,7 @@ func_config.train.model_update_conf(dict(naive_conf={}))
 
 @flow.global_function(func_config)
 def yolo_train_job():
-    images, ground_truth, gt_valid_num = yolo_train_decoder(args.batch_size, args.image_height, args.image_width, args.classes, args.num_boxes, args.hue, args.jitter, args.saturation, args.exposure, args.image_path_file, "yolo")
+    images, ground_truth, gt_valid_num = yolo_train_decoder(args.batch_size, args.image_height, args.image_width, args.classes, args.num_boxes, args.hue, args.jitter, args.saturation, args.exposure, args.dataset_dir, "yolo")
     gt_boxes = flow.slice(ground_truth, [None, 0, 0], [None, -1, 4], name = 'gt_box')
     gt_labels = flow.cast(flow.slice(ground_truth, [None, 0, 4], [None, -1, 1], name = 'gt_label'), dtype=flow.int32)
     yolo_loss_result, statistics_info_result = YoloTrainNet(images, gt_boxes, gt_labels, gt_valid_num, True)
@@ -68,12 +68,12 @@ if __name__ == "__main__":
     cur_time = time.time()
 
 
-    for step in range(args.total_batch_num):
+    for step in range(args.num_epoch):
         yolo_loss_result, statistics_info_result = yolo_train_job().get()
         process_statistics_info("Region 82", statistics_info_result[0].ndarray())
         process_statistics_info("Region 94", statistics_info_result[1].ndarray())
         process_statistics_info("Region 106", statistics_info_result[2].ndarray())
         print(fmt_str.format(step, np.abs(yolo_loss_result[0]).mean(), np.abs(yolo_loss_result[1]).mean(), np.abs(yolo_loss_result[2]).mean(), time.time()-cur_time))
         cur_time = time.time()
-        if (step + 1) % args.num_of_batches_in_snapshot == 0:
-            check_point.save(args.model_save_dir + "/snapshot_" + str(step//args.num_of_batches_in_snapshot))
+        if (step + 1) % args.save_frequency == 0:
+            check_point.save(args.model_save_dir + "/snapshot_" + str(step//args.save_frequency))
