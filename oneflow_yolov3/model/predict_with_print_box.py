@@ -6,6 +6,7 @@ from yolo_net import YoloPredictNet
 import oneflow_yolov3
 from oneflow_yolov3.ops.yolo_decode import yolo_predict_decoder
 import utils
+import numpy as np
 
 parser = argparse.ArgumentParser(description="flags for predict")
 parser.add_argument("-g", "--gpu_num_per_node", type=int, default=1, required=False)
@@ -22,15 +23,15 @@ parser.add_argument("-image_paths", "--image_paths", type=str, nargs='+', requir
 
 args = parser.parse_args()
 
-
 flow.config.load_library(oneflow_yolov3.lib_path())
 func_config = flow.FunctionConfig()
 func_config.default_distribute_strategy(flow.distribute.consistent_strategy())
 func_config.default_data_type(flow.float)
 if args.use_tensorrt != 0:
     func_config.use_tensorrt(True)
+
+
 # func_config.tensorrt.use_fp16()
-nms = True
 
 
 @flow.global_function(func_config)
@@ -53,12 +54,19 @@ if __name__ == "__main__":
     check_point = flow.train.CheckPoint()
     check_point.load(args.model_load_dir)
 
+    # Note: if use python_nms, than yolo_net.py should be nms=False
+    python_nms = True
+
     for i in range(len(args.image_paths)):
         start = time.time()
         yolo_pos, yolo_prob, origin_image_info = yolo_user_op_eval_job().get()
         print('cost: %.4f ms' % (1000 * (time.time() - start)))
-        bboxes = utils.postprocess_boxes(yolo_pos[0], yolo_prob[0], origin_image_info[0], 0.3)
+        if python_nms:
+            bboxes = utils.postprocess_boxes_new(yolo_pos, yolo_prob, origin_image_info[0], 0.3)
+            bboxes = utils.nms(bboxes, 0.45, method='nms')
+        else:
+            bboxes = utils.postprocess_boxes(yolo_pos[0], yolo_prob[0], origin_image_info[0], 0.3)
+
         utils.save_detected_images([args.image_paths[i]], [bboxes], args.label_path, args.output_dir)
         print('%s >> bboxes:' % args.image_paths[i], bboxes,
               '\n------------------------------------------------------------------------')
-
