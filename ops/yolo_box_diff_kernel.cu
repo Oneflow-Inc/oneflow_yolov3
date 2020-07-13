@@ -321,7 +321,6 @@ class YoloBoxDiffKernel final : public user_op::OpKernel {
         reinterpret_cast<void*>(anchor_boxes.data()),
         buf_manager.AnchorBoxesTmpElemCnt() * sizeof(int32_t),
         cudaMemcpyHostToDevice);
-    LOG(INFO)<<"AnchorBoxesTmpElemCnt"<<buf_manager.AnchorBoxesTmpElemCnt();
     Memcpy<DeviceType::kGPU>(ctx->device_ctx(),
                              reinterpret_cast<void*>(buf_manager.BoxMaskTmpPtr()),
                              reinterpret_cast<void*>(box_mask.data()),
