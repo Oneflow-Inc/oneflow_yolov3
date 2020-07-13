@@ -41,12 +41,20 @@ def yolo_train_job():
     images, ground_truth, gt_valid_num = yolo_train_decoder(args.batch_size, args.image_height, args.image_width, args.classes, args.num_boxes, args.hue, args.jitter, args.saturation, args.exposure, args.image_path_file, "yolo")
     gt_boxes = flow.slice(ground_truth, [None, 0, 0], [None, -1, 4], name = 'gt_box')
     gt_labels = flow.cast(flow.slice(ground_truth, [None, 0, 4], [None, -1, 1], name = 'gt_label'), dtype=flow.int32)
-    yolo0_loss, yolo1_loss, yolo2_loss = YoloTrainNet(images, gt_boxes, gt_labels, gt_valid_num, True)
-    flow.losses.add_loss(yolo0_loss)
-    flow.losses.add_loss(yolo1_loss)
-    flow.losses.add_loss(yolo2_loss)
-    return yolo0_loss, yolo1_loss, yolo2_loss
+    yolo_loss_result, statistics_info_result = YoloTrainNet(images, gt_boxes, gt_labels, gt_valid_num, True)
+    flow.losses.add_loss(yolo_loss_result[0])
+    flow.losses.add_loss(yolo_loss_result[1])
+    flow.losses.add_loss(yolo_loss_result[2])
+    return yolo_loss_result, statistics_info_result
 
+def process_statistics_info(layer_name, statistics_info):
+    count = statistics_info[:, 3].sum()
+    class_count = statistics_info[:, 4].sum()
+    avg_iou = statistics_info[:, 0].sum()/count if count!=0 else 0
+    avg_recall_5 = statistics_info[:, 1].sum()/count if count!=0 else 0
+    avg_recall_75 = statistics_info[:, 2].sum()/count if count!=0 else 0
+
+    print(layer_name, "Avg IOU: ", avg_iou, ".5 Recall:", avg_recall_5, ".75 Recall:", avg_recall_75, "count:", count)
 
 if __name__ == "__main__":
     check_point = flow.train.CheckPoint()
@@ -61,8 +69,11 @@ if __name__ == "__main__":
 
 
     for step in range(args.total_batch_num):
-        yolo0_loss, yolo1_loss, yolo2_loss = yolo_train_job().get()
-        print(fmt_str.format(step, np.abs(yolo0_loss).mean(), np.abs(yolo1_loss).mean(), np.abs(yolo2_loss).mean(), time.time()-cur_time))
+        yolo_loss_result, statistics_info_result = yolo_train_job().get()
+        process_statistics_info("Region 82", statistics_info_result[0].ndarray())
+        process_statistics_info("Region 94", statistics_info_result[1].ndarray())
+        process_statistics_info("Region 106", statistics_info_result[2].ndarray())
+        print(fmt_str.format(step, np.abs(yolo_loss_result[0]).mean(), np.abs(yolo_loss_result[1]).mean(), np.abs(yolo_loss_result[2]).mean(), time.time()-cur_time))
         cur_time = time.time()
         if (step + 1) % args.num_of_batches_in_snapshot == 0:
             check_point.save(args.model_save_dir + "/snapshot_" + str(step//args.num_of_batches_in_snapshot))

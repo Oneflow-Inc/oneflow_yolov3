@@ -8,6 +8,7 @@ route_dict = {}
 yolo_pos_result = []
 yolo_prob_result = []
 yolo_loss_result = []
+statistics_info_result = []
 
 num_classes = 80
 ignore_thresh = 0.7
@@ -225,11 +226,11 @@ def YoloTrainLayer(in_blob, gt_bbox_blob, gt_label_blob, gt_valid_num_blob, i):
 
   objness = flow.slice(confidence, [None, 0, 0], [None, -1, 1], name = layer_name + '-yolo_slice_objness')
   clsprob = flow.slice(confidence, [None, 0, 1], [None, -1, 80], name = layer_name + '-yolo_slice_clsprob')
-  bbox_loc_diff, pos_inds, pos_cls_label, neg_inds, valid_num = yolo_box_diff(position, gt_bbox_blob, gt_label_blob, gt_valid_num_blob, image_height=yolo_box_diff_conf[i]['image_height'], image_width=yolo_box_diff_conf[i]['image_width'], layer_height=yolo_box_diff_conf[i]['layer_height'], layer_width=yolo_box_diff_conf[i]['layer_width'], ignore_thresh=yolo_box_diff_conf[i]['ignore_thresh'], truth_thresh=yolo_box_diff_conf[i]['truth_thresh'], box_mask=yolo_box_diff_conf[i]['box_mask'], anchor_boxes_size= yolo_box_diff_conf[i]['anchor_boxes_size'], name = layer_name +'-yolo_box_loss') #placeholder for yolobox layer
+  bbox_loc_diff, pos_inds, pos_cls_label, neg_inds, valid_num, statistics_info = yolo_box_diff(position, gt_bbox_blob, gt_label_blob, gt_valid_num_blob, image_height=yolo_box_diff_conf[i]['image_height'], image_width=yolo_box_diff_conf[i]['image_width'], layer_height=yolo_box_diff_conf[i]['layer_height'], layer_width=yolo_box_diff_conf[i]['layer_width'], ignore_thresh=yolo_box_diff_conf[i]['ignore_thresh'], truth_thresh=yolo_box_diff_conf[i]['truth_thresh'], box_mask=yolo_box_diff_conf[i]['box_mask'], anchor_boxes_size= yolo_box_diff_conf[i]['anchor_boxes_size'], name = layer_name +'-yolo_box_loss') #placeholder for yolobox layer
   bbox_objness_out, bbox_clsprob_out = yolo_prob_loss(objness, clsprob, pos_inds, pos_cls_label, neg_inds, valid_num, num_classes = 80, name = layer_name +'-yolo_prob_loss')
   bbox_loss = flow.concat([bbox_loc_diff, bbox_objness_out, bbox_clsprob_out], axis=2, name = layer_name + '-loss_concat')
   bbox_loss_reduce_sum = flow.math.reduce_sum(bbox_loss, axis = [1,2], name = layer_name+ '-bbox_loss_reduce_sum')
-  return bbox_loss_reduce_sum
+  return bbox_loss_reduce_sum, statistics_info
 
 
 def YoloNetBody(in_blob, gt_bbox_blob=None, gt_label_blob=None,gt_valid_num_blob=None, origin_image_info=None, trainable=False):
@@ -272,8 +273,9 @@ def YoloNetBody(in_blob, gt_bbox_blob=None, gt_label_blob=None,gt_valid_num_blob
       yolo_pos_result.append(yolo_position)
       yolo_prob_result.append(yolo_prob)
     else:
-      loss = YoloTrainLayer(yolo_blob, gt_bbox_blob, gt_label_blob, gt_valid_num_blob, i)
+      loss, statistics_info = YoloTrainLayer(yolo_blob, gt_bbox_blob, gt_label_blob, gt_valid_num_blob, i)
       yolo_loss_result.append(loss)
+      statistics_info_result.append(statistics_info)
   if trainable == False:
     yolo_positions = flow.concat(yolo_pos_result, axis=1, name="concat_pos") #(b, n_boxes, 4)
     yolo_probs = flow.concat(yolo_prob_result, axis=1) #(b, n_boxes, 81)
@@ -295,7 +297,7 @@ def YoloNetBody(in_blob, gt_bbox_blob=None, gt_label_blob=None,gt_valid_num_blob
 
     return yolo_positions, yolo_probs
   else:
-    return yolo_loss_result
+    return yolo_loss_result, statistics_info_result
 
 
 def YoloPredictNet(data, origin_image_info, trainable=False):
@@ -313,5 +315,5 @@ def YoloTrainNet(data, gt_box, gt_label,gt_valid_num, trainable=True):
   #data = flow.transpose(data, perm=[0, 3, 1, 2])
   blob = conv_unit(data, num_filter=32, kernel=[3,3], stride=[1,1], pad="same", data_format="NCHW", use_bias=False, trainable=trainable, prefix='yolo-layer' + str(layer_number))
   blob = DarknetNetConvXBody(blob, trainable, lambda x: x)
-  yolo_loss_result=YoloNetBody(in_blob=blob, gt_bbox_blob=gt_box, gt_label_blob=gt_label,gt_valid_num_blob=gt_valid_num, trainable=trainable)
-  return yolo_loss_result
+  yolo_loss_result, statistics_info_result=YoloNetBody(in_blob=blob, gt_bbox_blob=gt_box, gt_label_blob=gt_label,gt_valid_num_blob=gt_valid_num, trainable=trainable)
+  return yolo_loss_result, statistics_info_result

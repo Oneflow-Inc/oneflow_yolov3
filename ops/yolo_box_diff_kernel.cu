@@ -105,6 +105,35 @@ __global__ void CoordinateTransformGpu(const int32_t box_num, const T* bbox,
 }
 
 template<typename T>
+__device__ void CalcIouBoxForStatisticInfo(T* bbox1, T* bbox2, float* statistics_info_ptr) {
+    //xywh->x1y1x2y2
+    const float box1_left = bbox1[0] - 0.5f * bbox1[2];
+    const float box1_right = bbox1[0] + 0.5f * bbox1[2];
+    const float box1_top = bbox1[1] - 0.5f * bbox1[3];
+    const float box1_bottom = bbox1[1] + 0.5f * bbox1[3];
+    //xywh->x1y1x2y2
+    const float box2_left = bbox2[0] - 0.5f * bbox2[2];
+    const float box2_right = bbox2[0] + 0.5f * bbox2[2];
+    const float box2_top = bbox2[1] - 0.5f * bbox2[3];
+    const float box2_bottom = bbox2[1] + 0.5f * bbox2[3];
+    
+    const float iw = min(box1_right, box2_right) - max(box1_left, box2_left);
+    const float ih = min(box1_bottom, box2_bottom) - max(box1_top, box2_top);
+    const float inter = iw*ih;
+    float iou = 0;
+    if (iw<0 || ih <0) {
+      iou = 0; 
+    } else {
+      iou = inter / (bbox1[2]*bbox1[3] + bbox2[2]*bbox2[3] - inter);
+    }
+    atomicAdd(statistics_info_ptr+0, iou); //iou
+    if(iou > 0.5){atomicAdd(statistics_info_ptr+1, 1);} //recall
+    if(iou > 0.75){atomicAdd(statistics_info_ptr+2, 1);} //recall75
+    atomicAdd(statistics_info_ptr+3, 1); //count
+    atomicAdd(statistics_info_ptr+4, 1); //class_count
+}
+
+template<typename T>
 __global__ void CalcIouGpu(const int32_t box_num, const T* pred_bbox, const T* gt_boxes_ptr,
                            float* overlaps, const int32_t gt_max_num,
                            const int32_t* gt_valid_num_ptr) {
@@ -158,10 +187,10 @@ __global__ void SetMaxOverlapsAndGtIndex(const int32_t box_num, const int32_t* g
 }
 
 template<typename T>
-__global__ void CalcGtNearestAnchorSize(const int32_t* gt_valid_num_ptr, const T* gt_boxes_ptr,
+__global__ void CalcGtNearestAnchorSize(const T* pred_bbox_ptr, const int32_t* gt_valid_num_ptr, const T* gt_boxes_ptr,
                                         const int32_t* anchor_boxes_size_ptr,
                                         const int32_t* box_mask_ptr,
-                                        int32_t* max_overlaps_gt_indices,
+                                        int32_t* max_overlaps_gt_indices, float* statistics_info_ptr,
                                         const int32_t anchor_boxes_size_num,
                                         const int32_t box_mask_num, const int32_t layer_height,
                                         const int32_t layer_width, const int32_t layer_nbox,
@@ -208,6 +237,7 @@ __global__ void CalcGtNearestAnchorSize(const int32_t* gt_valid_num_ptr, const T
         const int32_t fm_j = static_cast<int32_t>(floor(gt_boxes_ptr[i * 4 + 1] * layer_height));
         const int32_t box_index = fm_j * layer_width * layer_nbox + fm_i * layer_nbox + j;
         max_overlaps_gt_indices[box_index] = i;
+        CalcIouBoxForStatisticInfo(pred_bbox_ptr+box_index * 4, gt_boxes_ptr+i*4, statistics_info_ptr);
       }
     }
   }
@@ -263,6 +293,7 @@ class YoloBoxDiffKernel final : public user_op::OpKernel {
     user_op::Tensor* pos_cls_label = ctx->Tensor4ArgNameAndIndex("pos_cls_label", 0);
     user_op::Tensor* neg_inds = ctx->Tensor4ArgNameAndIndex("neg_inds", 0);
     user_op::Tensor* valid_num = ctx->Tensor4ArgNameAndIndex("valid_num", 0);
+    user_op::Tensor* statistics_info = ctx->Tensor4ArgNameAndIndex("statistics_info", 0);
     user_op::Tensor* tmp_buffer = ctx->Tensor4ArgNameAndIndex("tmp_buffer", 0);
 
     Memset<DeviceType::kGPU>(ctx->device_ctx(), bbox_loc_diff->mut_dptr<T>(), 0,
@@ -288,19 +319,21 @@ class YoloBoxDiffKernel final : public user_op::OpKernel {
     Memcpy<DeviceType::kGPU>(
         ctx->device_ctx(), reinterpret_cast<void*>(buf_manager.AnchorBoxesTmpPtr()),
         reinterpret_cast<void*>(anchor_boxes.data()),
-        GetCudaAlignedSize(buf_manager.AnchorBoxesTmpElemCnt() * sizeof(int32_t)),
+        buf_manager.AnchorBoxesTmpElemCnt() * sizeof(int32_t),
         cudaMemcpyHostToDevice);
     Memcpy<DeviceType::kGPU>(ctx->device_ctx(),
                              reinterpret_cast<void*>(buf_manager.BoxMaskTmpPtr()),
                              reinterpret_cast<void*>(box_mask.data()),
-                             GetCudaAlignedSize(buf_manager.BoxMaskTmpElemCnt() * sizeof(int32_t)),
+                             buf_manager.BoxMaskTmpElemCnt() * sizeof(int32_t),
                              cudaMemcpyHostToDevice);
+    Memset<DeviceType::kGPU>(ctx->device_ctx(), statistics_info->mut_dptr<float>(), 0, statistics_info->shape().elem_cnt() * sizeof(float));
 
     FOR_RANGE(int32_t, im_index, 0, bbox->shape().At(0)) {
       const int32_t* gt_valid_num_ptr =
           gt_valid_num->dptr<int32_t>() + im_index * gt_valid_num->shape().Count(1);
       const T* gt_boxes_ptr = gt_boxes->dptr<T>() + im_index * gt_boxes->shape().Count(1);
       const T* bbox_ptr = bbox->dptr<T>() + im_index * bbox->shape().Count(1);
+      float* statistics_info_ptr = statistics_info->mut_dptr<float>() + im_index * statistics_info->shape().Count(1);
 
       CoordinateTransformGpu<<<BlocksNum4ThreadsNum(box_num), kCudaThreadsNumPerBlock, 0,
                                ctx->device_ctx()->cuda_stream()>>>(
@@ -318,8 +351,8 @@ class YoloBoxDiffKernel final : public user_op::OpKernel {
           truth_thresh);
       CalcGtNearestAnchorSize<<<BlocksNum4ThreadsNum(gt_max_num), kCudaThreadsNumPerBlock, 0,
                                 ctx->device_ctx()->cuda_stream()>>>(
-          gt_valid_num_ptr, gt_boxes_ptr, buf_manager.AnchorBoxesTmpPtr(),
-          buf_manager.BoxMaskTmpPtr(), buf_manager.MaxOverapsGtIndicesPtr(), anchor_boxes_size_num,
+          buf_manager.PredBboxPtr(), gt_valid_num_ptr, gt_boxes_ptr, buf_manager.AnchorBoxesTmpPtr(),
+          buf_manager.BoxMaskTmpPtr(), buf_manager.MaxOverapsGtIndicesPtr(), statistics_info_ptr, anchor_boxes_size_num,
           layer_nbox, layer_height, layer_width, layer_nbox, image_height, image_width);
       int32_t* pos_inds_ptr = pos_inds->mut_dptr<int32_t>() + im_index * pos_inds->shape().Count(1);
       int32_t* neg_inds_ptr = neg_inds->mut_dptr<int32_t>() + im_index * neg_inds->shape().Count(1);
