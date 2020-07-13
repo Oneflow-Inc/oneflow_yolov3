@@ -16,8 +16,8 @@ truth_thresh = 1.0
 image_height = 608
 image_width = 608
 max_out_boxes = 90
-nms = True
-#nms=False
+# nms = True
+nms = False
 nms_threshold = 0.45
 
 #anchor_boxes_size_list=[flow.detection.anchor_boxes_size(10, 13), flow.detection.anchor_boxes_size(16, 30), flow.detection.anchor_boxes_size(33, 23), flow.detection.anchor_boxes_size(30,61), flow.detection.anchor_boxes_size(62, 45), flow.detection.anchor_boxes_size(59, 119), flow.detection.anchor_boxes_size(116,90), flow.detection.anchor_boxes_size(156, 198), flow.detection.anchor_boxes_size(373, 326)]
