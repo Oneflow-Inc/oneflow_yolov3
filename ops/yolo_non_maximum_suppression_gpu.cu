@@ -129,7 +129,7 @@ class YoloNmsGpuKernel final : public user_op::OpKernel {
           boxes + idx * boxes_blob->shape().Count(batch_dims),
           suppression_mask + idx * num_boxes * num_blocks,
           probs + idx * probs_blob->shape().Count(batch_dims));
-      ScanSuppression<<<1, num_blocks, num_blocks, ctx->device_ctx()->cuda_stream()>>>(
+      ScanSuppression<<<1, num_blocks, num_blocks * sizeof(int64_t), ctx->device_ctx()->cuda_stream()>>>(
           num_boxes, num_blocks, num_keep, suppression_mask + idx * num_boxes * num_blocks,
           keep + idx * num_boxes, probs + idx * probs_blob->shape().Count(batch_dims));
     }

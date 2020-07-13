@@ -21,10 +21,10 @@ parser.add_argument("-jitter", "--jitter", type=float, default=0.3, required=Fal
 parser.add_argument("-saturation", "--saturation", type=float, default=1.5, required=False)
 parser.add_argument("-exposure", "--exposure", type=float, default=1.5, required=False)
 parser.add_argument("-image_path_file", "--image_path_file", type=str, required=True)
-parser.add_argument("-lr", "--base_lr", type=float, default=0, required=True)
-parser.add_argument("-weight_l2", "--weight_l2", type=float, default=0, required=False)
-parser.add_argument("-total_batch_num", "--total_batch_num", type=int, required=True)
-
+parser.add_argument("-total_batch_num", "--total_batch_num", type=int, default=10, required=False)
+parser.add_argument("-base_lr", "--base_lr", type=float, default=0.001, required=False)
+parser.add_argument("-snapshot_num", "--num_of_batches_in_snapshot", type=int, required=True)
+parser.add_argument("-save", "--model_save_dir", type=str, required=False)
 
 args = parser.parse_args()
 
@@ -62,8 +62,8 @@ if __name__ == "__main__":
         check_point.init()
     else:
         check_point.load(args.model_load_dir)
-    fmt_str = "{:>12}   {:>12.10f} {:>12.10f} {:>12.3f}"
-    print("{:>12}   {:>12}  {:>12}  {:>12}".format("iter",  "reg loss value", "cls loss value", "time"))
+    fmt_str = "{:>12}  {:>12.4f}  {:>12.4f} {:>12.4f} {:>12.3f}"
+    print("{:>12}      {:>12}      {:>12}".format("iter",  "losses value", "time"))
     global cur_time
     cur_time = time.time()
 
@@ -73,4 +73,7 @@ if __name__ == "__main__":
         process_statistics_info("Region 82", statistics_info_result[0].ndarray())
         process_statistics_info("Region 94", statistics_info_result[1].ndarray())
         process_statistics_info("Region 106", statistics_info_result[2].ndarray())
-
+        print(fmt_str.format(step, np.abs(yolo_loss_result[0]).mean(), np.abs(yolo_loss_result[1]).mean(), np.abs(yolo_loss_result[2]).mean(), time.time()-cur_time))
+        cur_time = time.time()
+        if (step + 1) % args.num_of_batches_in_snapshot == 0:
+            check_point.save(args.model_save_dir + "/snapshot_" + str(step//args.num_of_batches_in_snapshot))

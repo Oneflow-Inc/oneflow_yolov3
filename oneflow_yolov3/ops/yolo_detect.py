@@ -5,8 +5,8 @@ import oneflow as flow
 def yolo_detect(bbox, probs, origin_image_info, image_height, image_width, layer_height, layer_width, prob_thresh, num_classes, anchor_boxes, max_out_boxes=None, name=None):
     #if name is None:
     #    name = id_util.UniqueStr("YoloDetect_")
-    if max_out_boxes is None:
-        max_out_boxes = bbox.static_shape[1]
+    if max_out_boxes is None or max_out_boxes > bbox.shape[1]:
+        max_out_boxes = bbox.shape[1]
     assert isinstance(anchor_boxes, (list, tuple))
 
     op = (
