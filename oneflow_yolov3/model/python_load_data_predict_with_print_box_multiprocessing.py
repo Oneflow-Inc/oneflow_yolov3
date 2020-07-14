@@ -11,7 +11,7 @@ from oneflow_yolov3.ops.yolo_decode import yolo_predict_decoder
 
 parser = argparse.ArgumentParser(description="flags for predict")
 parser.add_argument("-g", "--gpu_num_per_node", type=int, default=1, required=False)
-parser.add_argument("-load", "--model_load_dir", type=str, required=True)
+parser.add_argument("-load", "--pretrained_model", type=str, required=True)
 parser.add_argument("-image_height", "--image_height", type=int, default=608, required=False)
 parser.add_argument("-image_width", "--image_width", type=int, default=608, required=False)
 parser.add_argument("-img_list", "--image_list_path", type=str, required=True)
@@ -25,7 +25,7 @@ parser.add_argument("-image_path_list", "--image_path_list", type=str, nargs='+'
 
 args = parser.parse_args()
 
-assert os.path.exists(args.model_load_dir)
+assert os.path.exists(args.pretrained_model)
 assert os.path.exists(args.image_path_list[0])
 assert os.path.exists(args.label_to_name_file)
 
@@ -112,10 +112,10 @@ if __name__ == "__main__":
     flow.env.ctrl_port(9789)
 
     check_point = flow.train.CheckPoint()
-    if not args.model_load_dir:
+    if not args.pretrained_model:
         check_point.init()
     else:
-        check_point.load(args.model_load_dir)
+        check_point.load(args.pretrained_model)
     fmt_str = "{:>12}   {:>12.10f} {:>12.10f} {:>12.3f}"
     print("{:>12}   {:>12}  {:>12}  {:>12}".format("iter",  "reg loss value", "cls loss value", "time"))
     global cur_time
