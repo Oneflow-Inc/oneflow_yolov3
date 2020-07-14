@@ -9,5 +9,5 @@ python3 oneflow_yolov3/model/yolo_train.py \
 --num_epoch=100 --model_load_dir=$model_dir \
 --classes=80 --num_boxes=90 --save_frequency=100 \
 --model_save_dir="save_model" \
---dataset_dir="test_trainvalno5k.txt"
+--dataset_dir="data/test_trainvalno5k.txt"
 # --dataset_dir="data/COCO/trainvalno5k.txt"

@@ -1,4 +1,0 @@
-test_data/COCO_train2014_000000000009.jpg
-test_data/COCO_train2014_000000000025.jpg
-test_data/COCO_train2014_000000000030.jpg
-test_data/COCO_train2014_000000000034.jpg

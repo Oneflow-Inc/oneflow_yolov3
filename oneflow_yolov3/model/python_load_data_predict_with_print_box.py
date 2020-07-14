@@ -60,8 +60,10 @@ if __name__ == "__main__":
     check_point = flow.train.CheckPoint()
     check_point.load(args.pretrained_model)
 
-    path_list = args.image_paths
+    # Note: if use python_nms, than yolo_net.py should be nms=False
+    python_nms = True
 
+    path_list = args.image_paths
     iter_num = math.floor(len(args.image_paths)/float(args.batch_size))
     for i in range(iter_num):
         paths = path_list[i*args.batch_size:(i+1)*args.batch_size]
@@ -69,8 +71,12 @@ if __name__ == "__main__":
         start = time.time()
         yolo_pos, yolo_prob, origin_image_info = yolo_user_op_eval_job(images, origin_image_info).get()
         print('cost: %.4f ms' % (1000 * (time.time() - start)))
-        # bboxes = utils.batch_boxes(yolo_pos, yolo_prob, origin_image_info)
-        bboxes = utils.batch_postprocess_boxes(yolo_pos, yolo_prob, origin_image_info, 0.3)
+
+        if python_nms:
+            bboxes = utils.batch_postprocess_boxes_new(yolo_pos, yolo_prob, origin_image_info, 0.3)
+        else:
+            bboxes = utils.batch_postprocess_boxes(yolo_pos, yolo_prob, origin_image_info, 0.3)
+
         utils.save_detected_images(paths, bboxes, args.label_path, args.output_dir)
         print('iter:%d >> bboxes:' % i, bboxes,
               '\n------------------------------------------------------------------------')

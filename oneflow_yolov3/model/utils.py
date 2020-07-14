@@ -111,6 +111,19 @@ def save_detected_images(image_paths, bboxes, coco_label_path, output_dir='data/
         image.save(out_path)  # 保存
 
 
+def batch_postprocess_boxes_new(yolo_pos, yolo_prob, org_img_shape, threshold=0.3):
+    """
+    Generate batch bboxes for origin image based on network output,see >> postprocess_boxes()
+    """
+    batch_size, box_num, class_num = yolo_prob.shape[0], yolo_prob.shape[1], yolo_prob.shape[2] - 1
+    batch_bboxes = []
+    for i in range(batch_size):
+        bboxes = postprocess_boxes_new(yolo_pos[i, :, :], yolo_prob[i, :, :], org_img_shape[i, :], threshold)
+        bboxes = nms(bboxes, 0.45, method='nms')
+        batch_bboxes.append(bboxes)
+    return batch_bboxes
+
+
 def batch_postprocess_boxes(yolo_pos, yolo_prob, org_img_shape, threshold=0.3):
     """
     Generate batch bboxes for origin image based on network output,see >> postprocess_boxes()
@@ -160,13 +173,12 @@ def postprocess_boxes(yolo_pos, yolo_prob, org_img_shape, threshold=0.3):
     scale_mask = np.logical_and((0 < bboxes_scale), (bboxes_scale < np.inf))  # (B*C, )
 
     # 4. discard some boxes with pred_problow scores
-    classes = np.tile(np.arange(class_num), box_num)  # (B*C, )
-    score_mask = pred_prob > threshold                # (B*C, )
+    classes = np.tile(np.arange(class_num), box_num)
+    score_mask = pred_prob > threshold
     mask = np.logical_and(scale_mask, score_mask)     # (B*C, )
     coors, pred_prob, classes = pred_coor[mask], pred_prob[mask], classes[mask]
     bboxes = np.concatenate([classes[:, np.newaxis], coors, pred_prob[:, np.newaxis]], axis=-1)
     return bboxes.tolist()
-
 
 
 def postprocess_boxes_new(yolo_pos, yolo_prob, org_img_shape, threshold=0.3):
@@ -181,8 +193,9 @@ def postprocess_boxes_new(yolo_pos, yolo_prob, org_img_shape, threshold=0.3):
     reference:
     https://github.com/YunYang1994/TensorFlow2.0-Examples/blob/master/4-Object_Detection/YOLOV3/core/utils.py
     """
-    pred_xywh = yolo_pos[0, :, 0:4]                     # shape (box_num, 4)
-    pred_prob = yolo_prob[0, :, 1:yolo_prob.shape[1]]   # shape (box_num, 80)
+    print('yolo_pos.shape, yolo_prob.shape >>>>>>>>>>>>', yolo_pos.shape, yolo_prob.shape)
+    pred_xywh = yolo_pos[:, 0:4]                     # shape (box_num, 4)
+    pred_prob = yolo_prob[:, 1:yolo_prob.shape[1]]   # shape (box_num, 80)
 
 
     # 1. (x, y, w, h) --> (xmin, ymin, xmax, ymax)
@@ -205,6 +218,7 @@ def postprocess_boxes_new(yolo_pos, yolo_prob, org_img_shape, threshold=0.3):
 
     # 4. discard some boxes with pred_problow scores
     classes = np.argmax(pred_prob, axis=-1)          # (box_num, )
+    print('classes.shape .>>>>>>>>>>>>>>>>>>>>>>>', classes.shape)
     scores = pred_prob[np.arange(len(pred_coor)), classes]
     score_mask = scores > threshold
     mask = np.logical_and(scale_mask, score_mask)    # (box_num, )

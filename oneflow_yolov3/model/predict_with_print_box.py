@@ -62,7 +62,7 @@ if __name__ == "__main__":
         yolo_pos, yolo_prob, origin_image_info = yolo_user_op_eval_job().get()
         print('cost: %.4f ms' % (1000 * (time.time() - start)))
         if python_nms:
-            bboxes = utils.postprocess_boxes_new(yolo_pos, yolo_prob, origin_image_info[0], 0.3)
+            bboxes = utils.postprocess_boxes_new(yolo_pos[0], yolo_prob[0], origin_image_info[0], 0.3)
             bboxes = utils.nms(bboxes, 0.45, method='nms')
         else:
             bboxes = utils.postprocess_boxes(yolo_pos[0], yolo_prob[0], origin_image_info[0], 0.3)
