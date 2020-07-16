@@ -97,6 +97,7 @@ REGISTER_USER_OP("yolo_box_diff")
           .Split(user_op::OpArg("pos_cls_label", 0), 0)
           .Split(user_op::OpArg("neg_inds", 0), 0)
           .Split(user_op::OpArg("valid_num", 0), 0)
+          .Split(user_op::OpArg("statistics_info", 0), 0)
           .Build();
 
       return Maybe<void>::Ok();

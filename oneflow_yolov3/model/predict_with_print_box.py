@@ -55,7 +55,7 @@ if __name__ == "__main__":
     check_point.load(args.pretrained_model)
 
     # Note: if use python_nms, than yolo_net.py should be nms=False
-    python_nms = False
+    python_nms = True
 
     for i in range(len(args.image_paths)):
         start = time.time()
