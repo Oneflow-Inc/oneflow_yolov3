@@ -82,4 +82,4 @@ if __name__ == "__main__":
                                  np.abs(yolo_loss_result[2]).mean(), time.time() - cur_time))
             cur_time = time.time()
         if (epoch + 1) % args.save_frequency == 0:
-            check_point.save(args.model_save_dir + "/yolov3_snapshot_" + str(epoch//args.save_frequency))
+            check_point.save(args.model_save_dir + "/yolov3_snapshot_" + str(epoch+1))
