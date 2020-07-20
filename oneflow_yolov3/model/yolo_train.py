@@ -97,7 +97,7 @@ args = parser.parse_args()
 flow.config.gpu_device_num(args.gpu_num_per_node)
 flow.config.load_library(oneflow_yolov3.lib_path())
 func_config = flow.FunctionConfig()
-func_config.default_distribute_strategy(flow.distribute.consistent_strategy())
+func_config.default_distribute_strategy(flow.scope.consistent_view())
 func_config.default_data_type(flow.float)
 func_config.train.primary_lr(args.base_lr)
 func_config.train.model_update_conf(dict(naive_conf={}))
@@ -163,11 +163,11 @@ if __name__ == "__main__":
         for iter in range(iter_num):
             yolo_loss_result, statistics_info_result = yolo_train_job().get()
             process_statistics_info(
-                "Region 82", statistics_info_result[0].ndarray())
+                "Region 82", statistics_info_result[0].numpy())
             process_statistics_info(
-                "Region 94", statistics_info_result[1].ndarray())
+                "Region 94", statistics_info_result[1].numpy())
             process_statistics_info(
-                "Region 106", statistics_info_result[2].ndarray())
+                "Region 106", statistics_info_result[2].numpy())
             print(
                 fmt_str.format(
                     iter, np.abs(
