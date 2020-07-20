@@ -66,7 +66,7 @@ args = parser.parse_args()
 
 flow.config.load_library(oneflow_yolov3.lib_path())
 func_config = flow.FunctionConfig()
-func_config.default_distribute_strategy(flow.distribute.consistent_strategy())
+func_config.default_distribute_strategy(flow.scope.consistent_view())
 func_config.default_data_type(flow.float)
 if args.use_tensorrt != 0:
     func_config.use_tensorrt(True)

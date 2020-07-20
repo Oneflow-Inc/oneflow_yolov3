@@ -10,9 +10,9 @@ def yolo_nms(boxes, probs, iou_threshold, keep_n, batch_dims, name):
         .Input("bbox", [boxes])
         .Input("probs", [probs])
         .Output("out")
-        .Attr("iou_threshold", iou_threshold, "AttrTypeFloat")
-        .Attr("keep_n", keep_n, "AttrTypeInt32")
-        .Attr("batch_dims", batch_dims, "AttrTypeInt32")
+        .Attr("iou_threshold", iou_threshold)
+        .Attr("keep_n", keep_n)
+        .Attr("batch_dims", batch_dims)
         .Build()
         .InferAndTryRun()
         .RemoteBlobList()[0]
