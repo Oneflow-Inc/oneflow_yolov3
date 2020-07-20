@@ -1,6 +1,6 @@
 import oneflow as flow
 import oneflow.core.operator.op_conf_pb2 as op_conf_util
-from oneflow_yolov3.ops.upsample_nearest import upsample_nearest
+# from oneflow_yolov3.ops.upsample_nearest import upsample_nearest
 from oneflow_yolov3.ops.yolo_detect import yolo_detect, yolo_box_diff, yolo_prob_loss, logistic
 from oneflow_yolov3.ops.yolo_nms import yolo_nms
 
@@ -117,8 +117,8 @@ def _leaky_relu(input, alpha=None, name=None):
 
 
 def _upsample(input, name=None):
-    # return flow.detection.upsample_nearest(input, name=name, scale=2, data_format="channels_first")
-    return upsample_nearest(input, name=name, scale=2, data_format="channels_first")
+    # return upsample_nearest(input, name=name, scale=2, data_format="channels_first")
+    return flow.layers.upsample_2d(input, size=2, data_format='NCHW', interpolation="nearest")
 
 
 def conv_unit(data, num_filter=1, kernel=(1, 1), stride=(1, 1), pad="same", data_format="NCHW", use_bias=False,
