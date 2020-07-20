@@ -10,7 +10,7 @@ import numpy as np
 
 parser = argparse.ArgumentParser(description="flags for predict")
 parser.add_argument("-g", "--gpu_num_per_node", type=int, default=1, required=False)
-parser.add_argument("-load", "--model_load_dir", type=str, required=True)
+parser.add_argument("-load", "--pretrained_model", type=str, required=True)
 parser.add_argument("-image_height", "--image_height", type=int, default=608, required=False)
 parser.add_argument("-image_width", "--image_width", type=int, default=608, required=False)
 parser.add_argument("-label_path", "--label_path", type=str, required=True)
@@ -43,7 +43,7 @@ def yolo_user_op_eval_job():
 
 
 if __name__ == "__main__":
-    assert os.path.exists(args.model_load_dir)
+    assert os.path.exists(args.pretrained_model)
     assert args.input_dir or os.path.exists(args.image_paths[0])
     assert os.path.exists(args.label_path)
 
@@ -52,7 +52,7 @@ if __name__ == "__main__":
 
     flow.config.gpu_device_num(args.gpu_num_per_node)  # set gpu num
     check_point = flow.train.CheckPoint()
-    check_point.load(args.model_load_dir)
+    check_point.load(args.pretrained_model)
 
     # Note: if use python_nms, than yolo_net.py should be nms=False
     python_nms = True
@@ -62,7 +62,7 @@ if __name__ == "__main__":
         yolo_pos, yolo_prob, origin_image_info = yolo_user_op_eval_job().get()
         print('cost: %.4f ms' % (1000 * (time.time() - start)))
         if python_nms:
-            bboxes = utils.postprocess_boxes_new(yolo_pos, yolo_prob, origin_image_info[0], 0.3)
+            bboxes = utils.postprocess_boxes_new(yolo_pos[0], yolo_prob[0], origin_image_info[0], 0.3)
             bboxes = utils.nms(bboxes, 0.45, method='nms')
         else:
             bboxes = utils.postprocess_boxes(yolo_pos[0], yolo_prob[0], origin_image_info[0], 0.3)
