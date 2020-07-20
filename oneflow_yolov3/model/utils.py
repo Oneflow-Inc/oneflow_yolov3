@@ -23,7 +23,8 @@ def draw_bbox_for_batch(image, bboxes, classes, show_label=True):
     image_h, image_w, _ = image.shape
     hsv_tuples = [(1.0 * x / num_classes, 1., 1.) for x in range(num_classes)]
     colors = list(map(lambda x: colorsys.hsv_to_rgb(*x), hsv_tuples))
-    colors = list(map(lambda x: (int(x[0] * 255), int(x[1] * 255), int(x[2] * 255)), colors))
+    colors = list(
+        map(lambda x: (int(x[0] * 255), int(x[1] * 255), int(x[2] * 255)), colors))
 
     random.seed(0)
     random.shuffle(colors)
@@ -43,11 +44,23 @@ def draw_bbox_for_batch(image, bboxes, classes, show_label=True):
 
         if show_label:
             bbox_mess = '%s: %.2f' % (classes[class_ind], score)
-            t_size = cv2.getTextSize(bbox_mess, 0, fontScale, thickness=bbox_thick // 2)[0]
-            cv2.rectangle(image, c1, (c1[0] + t_size[0], c1[1] - t_size[1] - 3), bbox_color, -1)  # filled
+            t_size = cv2.getTextSize(
+                bbox_mess, 0, fontScale, thickness=bbox_thick // 2)[0]
+            cv2.rectangle(
+                image, c1, (c1[0] + t_size[0], c1[1] - t_size[1] - 3), bbox_color, -1)  # filled
 
-            cv2.putText(image, bbox_mess, (c1[0], c1[1] - 2), cv2.FONT_HERSHEY_SIMPLEX,
-                        fontScale, (0, 0, 0), bbox_thick // 2, lineType=cv2.LINE_AA)
+            cv2.putText(
+                image,
+                bbox_mess,
+                (c1[0],
+                 c1[1] - 2),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                fontScale,
+                (0,
+                 0,
+                 0),
+                bbox_thick // 2,
+                lineType=cv2.LINE_AA)
 
     return image
 
@@ -61,7 +74,8 @@ def draw_bbox(image, bboxes, classes, show_label=True):
     image_h, image_w, _ = image.shape
     hsv_tuples = [(1.0 * x / num_classes, 1., 1.) for x in range(num_classes)]
     colors = list(map(lambda x: colorsys.hsv_to_rgb(*x), hsv_tuples))
-    colors = list(map(lambda x: (int(x[0] * 255), int(x[1] * 255), int(x[2] * 255)), colors))
+    colors = list(
+        map(lambda x: (int(x[0] * 255), int(x[1] * 255), int(x[2] * 255)), colors))
 
     random.seed(0)
     random.shuffle(colors)
@@ -83,21 +97,38 @@ def draw_bbox(image, bboxes, classes, show_label=True):
 
         if show_label:
             bbox_mess = '%s: %.2f' % (classes[class_ind], score)
-            t_size = cv2.getTextSize(bbox_mess, 0, fontScale, thickness=bbox_thick // 2)[0]
-            cv2.rectangle(image, c1, (c1[0] + t_size[0], c1[1] - t_size[1] - 3), bbox_color, -1)  # filled
+            t_size = cv2.getTextSize(
+                bbox_mess, 0, fontScale, thickness=bbox_thick // 2)[0]
+            cv2.rectangle(
+                image, c1, (c1[0] + t_size[0], c1[1] - t_size[1] - 3), bbox_color, -1)  # filled
 
-            cv2.putText(image, bbox_mess, (c1[0], c1[1] - 2), cv2.FONT_HERSHEY_SIMPLEX,
-                        fontScale, (0, 0, 0), bbox_thick // 2, lineType=cv2.LINE_AA)
+            cv2.putText(
+                image,
+                bbox_mess,
+                (c1[0],
+                 c1[1] - 2),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                fontScale,
+                (0,
+                 0,
+                 0),
+                bbox_thick // 2,
+                lineType=cv2.LINE_AA)
 
     return image
 
 
-def save_detected_images(image_paths, bboxes, coco_label_path, output_dir='data/result'):
+def save_detected_images(
+        image_paths,
+        bboxes,
+        coco_label_path,
+        output_dir='data/result'):
     """
     draw bbox on the origin image,and save batch detected result
     bboxes:[[  class_id, x1, x2, y1, y2, possibility], [  class, x1, x2, y1, y2, possibility]...]
     """
-    assert len(image_paths) > 0 and os.path.exists(image_paths[0]) and len(image_paths) == len(bboxes)
+    assert len(image_paths) > 0 and os.path.exists(
+        image_paths[0]) and len(image_paths) == len(bboxes)
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
     classes = read_class_names(coco_label_path)
@@ -107,18 +138,24 @@ def save_detected_images(image_paths, bboxes, coco_label_path, output_dir='data/
         image = draw_bbox_for_batch(rgb_image, bboxes[i], classes)
         image = Image.fromarray(image)
         # image.show()
-        out_path = output_dir + os.sep + 'detected_' + os.path.basename(image_paths[i])
+        out_path = output_dir + os.sep + 'detected_' + \
+            os.path.basename(image_paths[i])
         image.save(out_path)  # 保存
 
 
-def batch_postprocess_boxes_new(yolo_pos, yolo_prob, org_img_shape, threshold=0.3):
+def batch_postprocess_boxes_new(
+        yolo_pos,
+        yolo_prob,
+        org_img_shape,
+        threshold=0.3):
     """
     Generate batch bboxes for origin image based on network output,see >> postprocess_boxes()
     """
     batch_size, box_num, class_num = yolo_prob.shape[0], yolo_prob.shape[1], yolo_prob.shape[2] - 1
     batch_bboxes = []
     for i in range(batch_size):
-        bboxes = postprocess_boxes_new(yolo_pos[i, :, :], yolo_prob[i, :, :], org_img_shape[i, :], threshold)
+        bboxes = postprocess_boxes_new(
+            yolo_pos[i, :, :], yolo_prob[i, :, :], org_img_shape[i, :], threshold)
         bboxes = nms(bboxes, 0.45, method='nms')
         batch_bboxes.append(bboxes)
     return batch_bboxes
@@ -128,25 +165,35 @@ def batch_postprocess_boxes(yolo_pos, yolo_prob, org_img_shape, threshold=0.3):
     """
     Generate batch bboxes for origin image based on network output,see >> postprocess_boxes()
     """
-    batch_size, class_num, box_num = yolo_prob.shape[0], yolo_prob.shape[1] - 1, yolo_prob.shape[2]
+    batch_size, class_num, box_num = yolo_prob.shape[0], yolo_prob.shape[1] - \
+        1, yolo_prob.shape[2]
     batch_bboxes = []
     for i in range(batch_size):
-        bboxes = postprocess_boxes(yolo_pos[i, :, :, :], yolo_prob[i, :, :], org_img_shape[i, :], threshold)
+        bboxes = postprocess_boxes(
+            yolo_pos[i, :, :, :], yolo_prob[i, :, :], org_img_shape[i, :], threshold)
         batch_bboxes.append(bboxes)
     return batch_bboxes
 
-def batch_postprocess_boxes_nms(yolo_pos, yolo_prob, org_img_shape, conf_thld=0.3, nms_thld=0.45):
+
+def batch_postprocess_boxes_nms(
+        yolo_pos,
+        yolo_prob,
+        org_img_shape,
+        conf_thld=0.3,
+        nms_thld=0.45):
     """
     Generate batch bboxes for origin image based on network output,see >> postprocess_boxes()
     """
-    batch_size, class_num, box_num = yolo_prob.shape[0], yolo_prob.shape[1] - 1, yolo_prob.shape[2]
+    batch_size, class_num, box_num = yolo_prob.shape[0], yolo_prob.shape[1] - \
+        1, yolo_prob.shape[2]
     batch_bboxes = []
     for i in range(batch_size):
-        bboxes = postprocess_boxes_new(yolo_pos[i, :, :], yolo_prob[i, :, :], org_img_shape[i, :],
-                conf_thld)
+        bboxes = postprocess_boxes_new(
+            yolo_pos[i, :, :], yolo_prob[i, :, :], org_img_shape[i, :], conf_thld)
         bboxes = nms(bboxes, nms_thld, method='nms')
         batch_bboxes.append(bboxes)
     return batch_bboxes
+
 
 def postprocess_boxes(yolo_pos, yolo_prob, org_img_shape, threshold=0.3):
     """
@@ -163,8 +210,10 @@ def postprocess_boxes(yolo_pos, yolo_prob, org_img_shape, threshold=0.3):
     class_num = yolo_prob.shape[0] - 1
     box_num = yolo_prob.shape[1]
     pred_xywh = yolo_pos[1:yolo_pos.shape[1], :, 0:4]  # shape (B, C, 4)
-    pred_xywh = pred_xywh.reshape((class_num * box_num, 4), order='F')  # shape (B*C, 4)
-    pred_prob = yolo_prob[1:yolo_prob.shape[1], :].reshape((class_num * box_num), order='F')  # shape (B*C, )
+    pred_xywh = pred_xywh.reshape(
+        (class_num * box_num, 4), order='F')  # shape (B*C, 4)
+    pred_prob = yolo_prob[1:yolo_prob.shape[1], :].reshape(
+        (class_num * box_num), order='F')  # shape (B*C, )
 
     # 1. (x, y, w, h) --> (xmin, ymin, xmax, ymax)
     org_h, org_w = org_img_shape
@@ -175,21 +224,26 @@ def postprocess_boxes(yolo_pos, yolo_prob, org_img_shape, threshold=0.3):
     pred_coor = np.vstack((xmin, ymin, xmax, ymax)).T
 
     # 2. clip some boxes those are out of range
-    pred_coor = np.concatenate([np.maximum(pred_coor[:, :2], [0, 0]),
-                                np.minimum(pred_coor[:, 2:], [org_w - 1, org_h - 1])], axis=-1)
-    invalid_mask = np.logical_or((pred_coor[:, 0] > pred_coor[:, 2]), (pred_coor[:, 1] > pred_coor[:, 3]))
+    pred_coor = np.concatenate([np.maximum(pred_coor[:, :2], [0, 0]), np.minimum(
+        pred_coor[:, 2:], [org_w - 1, org_h - 1])], axis=-1)
+    invalid_mask = np.logical_or(
+        (pred_coor[:, 0] > pred_coor[:, 2]), (pred_coor[:, 1] > pred_coor[:, 3]))
     pred_coor[invalid_mask] = 0  # shape (B*C, 4)
 
     # 3. discard some invalid boxes
-    bboxes_scale = np.sqrt(np.multiply.reduce(pred_coor[:, 2:4] - pred_coor[:, 0:2], axis=-1))
-    scale_mask = np.logical_and((0 < bboxes_scale), (bboxes_scale < np.inf))  # (B*C, )
+    bboxes_scale = np.sqrt(np.multiply.reduce(
+        pred_coor[:, 2:4] - pred_coor[:, 0:2], axis=-1))
+    scale_mask = np.logical_and(
+        (0 < bboxes_scale),
+        (bboxes_scale < np.inf))  # (B*C, )
 
     # 4. discard some boxes with pred_problow scores
     classes = np.tile(np.arange(class_num), box_num)
     score_mask = pred_prob > threshold
     mask = np.logical_and(scale_mask, score_mask)     # (B*C, )
     coors, pred_prob, classes = pred_coor[mask], pred_prob[mask], classes[mask]
-    bboxes = np.concatenate([classes[:, np.newaxis], coors, pred_prob[:, np.newaxis]], axis=-1)
+    bboxes = np.concatenate(
+        [classes[:, np.newaxis], coors, pred_prob[:, np.newaxis]], axis=-1)
     return bboxes.tolist()
 
 
@@ -209,7 +263,6 @@ def postprocess_boxes_new(yolo_pos, yolo_prob, org_img_shape, threshold=0.3):
     pred_xywh = yolo_pos[:, 0:4]                     # shape (box_num, 4)
     pred_prob = yolo_prob[:, 1:yolo_prob.shape[1]]   # shape (box_num, 80)
 
-
     # 1. (x, y, w, h) --> (xmin, ymin, xmax, ymax)
     org_h, org_w = org_img_shape
     xmin = (pred_xywh[:, 0] - pred_xywh[:, 2] / 2.) * org_w
@@ -219,14 +272,18 @@ def postprocess_boxes_new(yolo_pos, yolo_prob, org_img_shape, threshold=0.3):
     pred_coor = np.vstack((xmin, ymin, xmax, ymax)).T   # shape (box_num, 4)
 
     # 2. clip some boxes those are out of range
-    pred_coor = np.concatenate([np.maximum(pred_coor[:, :2], [0, 0]),
-                                np.minimum(pred_coor[:, 2:], [org_w - 1, org_h - 1])], axis=-1)
-    invalid_mask = np.logical_or((pred_coor[:, 0] > pred_coor[:, 2]), (pred_coor[:, 1] > pred_coor[:, 3]))
+    pred_coor = np.concatenate([np.maximum(pred_coor[:, :2], [0, 0]), np.minimum(
+        pred_coor[:, 2:], [org_w - 1, org_h - 1])], axis=-1)
+    invalid_mask = np.logical_or(
+        (pred_coor[:, 0] > pred_coor[:, 2]), (pred_coor[:, 1] > pred_coor[:, 3]))
     pred_coor[invalid_mask] = 0  # shape (box_num, 4)
 
     # 3. discard some invalid boxes
-    bboxes_scale = np.sqrt(np.multiply.reduce(pred_coor[:, 2:4] - pred_coor[:, 0:2], axis=-1))
-    scale_mask = np.logical_and((0 < bboxes_scale), (bboxes_scale < np.inf))  # (box_num, )
+    bboxes_scale = np.sqrt(np.multiply.reduce(
+        pred_coor[:, 2:4] - pred_coor[:, 0:2], axis=-1))
+    scale_mask = np.logical_and(
+        (0 < bboxes_scale),
+        (bboxes_scale < np.inf))  # (box_num, )
 
     # 4. discard some boxes with pred_problow scores
     classes = np.argmax(pred_prob, axis=-1)          # (box_num, )
@@ -236,7 +293,8 @@ def postprocess_boxes_new(yolo_pos, yolo_prob, org_img_shape, threshold=0.3):
     mask = np.logical_and(scale_mask, score_mask)    # (box_num, )
     coors, scores, classes = pred_coor[mask], scores[mask], classes[mask]
     # bboxes.shape >> (box_num, 6)
-    bboxes = np.concatenate([classes[:, np.newaxis], coors, scores[:, np.newaxis]], axis=-1)
+    bboxes = np.concatenate(
+        [classes[:, np.newaxis], coors, scores[:, np.newaxis]], axis=-1)
     return bboxes
 
 
@@ -245,8 +303,10 @@ def bboxes_iou(boxes1, boxes2):
     boxes1 = np.array(boxes1)
     boxes2 = np.array(boxes2)
 
-    boxes1_area = (boxes1[..., 2] - boxes1[..., 0]) * (boxes1[..., 3] - boxes1[..., 1])
-    boxes2_area = (boxes2[..., 2] - boxes2[..., 0]) * (boxes2[..., 3] - boxes2[..., 1])
+    boxes1_area = (boxes1[..., 2] - boxes1[..., 0]) * \
+        (boxes1[..., 3] - boxes1[..., 1])
+    boxes2_area = (boxes2[..., 2] - boxes2[..., 0]) * \
+        (boxes2[..., 3] - boxes2[..., 1])
 
     left_up = np.maximum(boxes1[..., :2], boxes2[..., :2])
     right_down = np.minimum(boxes1[..., 2:], boxes2[..., 2:])
@@ -277,7 +337,8 @@ def nms(bboxes, iou_threshold, sigma=0.3, method='nms'):
             max_ind = np.argmax(cls_bboxes[:, 5])
             best_bbox = cls_bboxes[max_ind]
             best_bboxes.append(best_bbox)
-            cls_bboxes = np.concatenate([cls_bboxes[: max_ind], cls_bboxes[max_ind + 1:]])
+            cls_bboxes = np.concatenate(
+                [cls_bboxes[: max_ind], cls_bboxes[max_ind + 1:]])
             iou = bboxes_iou(best_bbox[np.newaxis, 1:5], cls_bboxes[:, 1:5])
             weight = np.ones((len(iou),), dtype=np.float32)
 
@@ -335,12 +396,13 @@ def batch_boxes(positions, probs, origin_image_info, nms=True):
             for j in range(positions.shape[1]):
                 for i in range(1, 81):
                     if positions[k][j][2] != 0 and positions[k][j][3] != 0 and probs[k][j][i] != 0:
-                        x1, y1, x2, y2 = xywh_2_x1y1x2y2(positions[k][j][0], positions[k][j][1],
-                                                         positions[k][j][2], positions[k][j][3], origin_image_info[k])
+                        x1, y1, x2, y2 = xywh_2_x1y1x2y2(
+                            positions[k][j][0], positions[k][j][1], positions[k][j][2], positions[k][j][3], origin_image_info[k])
                         bbox = [i - 1, x1, y1, x2, y2, probs[k][j][i]]
                         box_list.append(bbox)
             batch_list.append(np.asarray(box_list))
     return batch_list
+
 
 def ap_per_class(tp, conf, pred_cls, target_cls):
     """ Compute the average precision, given the recall and precision curves.
@@ -406,6 +468,7 @@ def ap_per_class(tp, conf, pred_cls, target_cls):
 
     return p, r, ap, f1, unique_classes.astype('int32')
 
+
 def compute_ap(recall, precision):
     """ Compute the average precision, given the recall and precision curves.
     Source: https://github.com/rbgirshick/py-faster-rcnn.
@@ -430,15 +493,15 @@ def compute_ap(recall, precision):
         x = np.linspace(0, 1, 101)  # 101-point interp (COCO)
         ap = np.trapz(np.interp(x, mrec, mpre), x)  # integrate
     else:  # 'continuous'
-        i = np.where(mrec[1:] != mrec[:-1])[0]  # points where x axis (recall) changes
+        # points where x axis (recall) changes
+        i = np.where(mrec[1:] != mrec[:-1])[0]
         ap = np.sum((mrec[i + 1] - mrec[i]) * mpre[i + 1])  # area under curve
 
     return ap
+
 
 def clip_coords(boxes, img_shape):
     # Clip bounding xyxy bounding boxes to image shape (height, width)
     boxes[:, [1, 3]] = boxes[:, [1, 3]].clip(0, img_shape[1])  # clip x
     boxes[:, [2, 4]] = boxes[:, [2, 4]].clip(0, img_shape[0])  # clip y
     return boxes
-
-
