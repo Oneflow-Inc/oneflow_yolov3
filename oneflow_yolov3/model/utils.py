@@ -135,6 +135,18 @@ def batch_postprocess_boxes(yolo_pos, yolo_prob, org_img_shape, threshold=0.3):
         batch_bboxes.append(bboxes)
     return batch_bboxes
 
+def batch_postprocess_boxes_nms(yolo_pos, yolo_prob, org_img_shape, conf_thld=0.3, nms_thld=0.45):
+    """
+    Generate batch bboxes for origin image based on network output,see >> postprocess_boxes()
+    """
+    batch_size, class_num, box_num = yolo_prob.shape[0], yolo_prob.shape[1] - 1, yolo_prob.shape[2]
+    batch_bboxes = []
+    for i in range(batch_size):
+        bboxes = postprocess_boxes_new(yolo_pos[i, :, :], yolo_prob[i, :, :], org_img_shape[i, :],
+                conf_thld)
+        bboxes = nms(bboxes, nms_thld, method='nms')
+        batch_bboxes.append(bboxes)
+    return batch_bboxes
 
 def postprocess_boxes(yolo_pos, yolo_prob, org_img_shape, threshold=0.3):
     """
@@ -193,7 +205,7 @@ def postprocess_boxes_new(yolo_pos, yolo_prob, org_img_shape, threshold=0.3):
     reference:
     https://github.com/YunYang1994/TensorFlow2.0-Examples/blob/master/4-Object_Detection/YOLOV3/core/utils.py
     """
-    print('yolo_pos.shape, yolo_prob.shape >>>>>>>>>>>>', yolo_pos.shape, yolo_prob.shape)
+
     pred_xywh = yolo_pos[:, 0:4]                     # shape (box_num, 4)
     pred_prob = yolo_prob[:, 1:yolo_prob.shape[1]]   # shape (box_num, 80)
 
@@ -329,3 +341,104 @@ def batch_boxes(positions, probs, origin_image_info, nms=True):
                         box_list.append(bbox)
             batch_list.append(np.asarray(box_list))
     return batch_list
+
+def ap_per_class(tp, conf, pred_cls, target_cls):
+    """ Compute the average precision, given the recall and precision curves.
+    Source: https://github.com/rafaelpadilla/Object-Detection-Metrics.
+    # Arguments
+        tp:    True positives (list).
+        conf:  Objectness value from 0-1 (list).
+        pred_cls: Predicted object classes (list).
+        target_cls: True object classes (list).
+    # Returns
+        The average precision as computed in py-faster-rcnn.
+    """
+
+    # Sort by objectness
+    i = np.argsort(-conf)
+    tp, conf, pred_cls = tp[i], conf[i], pred_cls[i]
+
+    # Find unique classes
+    unique_classes = np.unique(target_cls)
+
+    # Create Precision-Recall curve and compute AP for each class
+    ap, p, r = [], [], []
+    for c in unique_classes:
+        i = pred_cls == c
+        n_gt = (target_cls == c).sum()  # Number of ground truth objects
+        n_p = i.sum()  # Number of predicted objects
+
+        if n_p == 0 and n_gt == 0:
+            continue
+        elif n_p == 0 or n_gt == 0:
+            ap.append(0)
+            r.append(0)
+            p.append(0)
+        else:
+            # Accumulate FPs and TPs
+            fpc = (1 - tp[i]).cumsum()
+            tpc = (tp[i]).cumsum()
+
+            # Recall
+            recall = tpc / (n_gt + 1e-16)  # recall curve
+            r.append(recall[-1])
+
+            # Precision
+            precision = tpc / (tpc + fpc)  # precision curve
+            p.append(precision[-1])
+
+            # AP from recall-precision curve
+            ap.append(compute_ap(recall, precision))
+
+            # Plot
+            # fig, ax = plt.subplots(1, 1, figsize=(4, 4))
+            # ax.plot(np.concatenate(([0.], recall)), np.concatenate(([0.], precision)))
+            # ax.set_xlabel('YOLOv3-SPP')
+            # ax.set_xlabel('Recall')
+            # ax.set_ylabel('Precision')
+            # ax.set_xlim(0, 1)
+            # fig.tight_layout()
+            # fig.savefig('PR_curve.png', dpi=300)
+
+    # Compute F1 score (harmonic mean of precision and recall)
+    p, r, ap = np.array(p), np.array(r), np.array(ap)
+    f1 = 2 * p * r / (p + r + 1e-16)
+
+    return p, r, ap, f1, unique_classes.astype('int32')
+
+def compute_ap(recall, precision):
+    """ Compute the average precision, given the recall and precision curves.
+    Source: https://github.com/rbgirshick/py-faster-rcnn.
+    # Arguments
+        recall:    The recall curve (list).
+        precision: The precision curve (list).
+    # Returns
+        The average precision as computed in py-faster-rcnn.
+    """
+
+    # Append sentinel values to beginning and end
+    mrec = np.concatenate(([0.], recall, [min(recall[-1] + 1E-3, 1.)]))
+    mpre = np.concatenate(([0.], precision, [0.]))
+
+    # Compute the precision envelope
+    for i in range(mpre.size - 1, 0, -1):
+        mpre[i - 1] = np.maximum(mpre[i - 1], mpre[i])
+
+    # Integrate area under curve
+    method = 'interp'  # methods: 'continuous', 'interp'
+    if method == 'interp':
+        x = np.linspace(0, 1, 101)  # 101-point interp (COCO)
+        ap = np.trapz(np.interp(x, mrec, mpre), x)  # integrate
+    else:  # 'continuous'
+        i = np.where(mrec[1:] != mrec[:-1])[0]  # points where x axis (recall) changes
+        ap = np.sum((mrec[i + 1] - mrec[i]) * mpre[i + 1])  # area under curve
+
+    return ap
+
+def clip_coords(boxes, img_shape):
+    # Clip bounding xyxy bounding boxes to image shape (height, width)
+    boxes[:, [1, 3]] = boxes[:, [1, 3]].clip(0, img_shape[1])  # clip x
+    boxes[:, [2, 4]] = boxes[:, [2, 4]].clip(0, img_shape[0])  # clip y
+    return boxes
+
+
