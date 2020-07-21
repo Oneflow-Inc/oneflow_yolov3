@@ -1,6 +1,5 @@
 import oneflow as flow
 import oneflow.core.operator.op_conf_pb2 as op_conf_util
-# from oneflow_yolov3.ops.upsample_nearest import upsample_nearest
 from oneflow_yolov3.ops.yolo_detect import yolo_detect, yolo_box_diff, yolo_prob_loss, logistic
 from oneflow_yolov3.ops.yolo_nms import yolo_nms
 
@@ -16,7 +15,7 @@ ignore_thresh = 0.7
 truth_thresh = 1.0
 image_height = 608
 image_width = 608
-max_out_boxes = 90
+max_out_boxes = None
 # nms = True
 nms = False
 nms_threshold = 0.45
@@ -34,11 +33,11 @@ yolo_box_diff_conf = [{'image_height': image_height, 'image_width': image_width,
                        'anchor_boxes_size': anchor_boxes_size_list, 'box_mask': [0, 1, 2]}]
 
 # to confirm wh pos, gr 12.19 check with 11 ~/yolov3/predict.job
-yolo_conf = [{'layer_height': 19, 'layer_width': 19, 'prob_thresh': 0.5, 'num_classes': 80,
+yolo_conf = [{'layer_height': 19, 'layer_width': 19, 'prob_thresh': 0.005, 'num_classes': 80,
               'anchor_boxes_size': [116, 90, 156, 198, 373, 326]},
-             {'layer_height': 38, 'layer_width': 38, 'prob_thresh': 0.5, 'num_classes': 80,
+             {'layer_height': 38, 'layer_width': 38, 'prob_thresh': 0.005, 'num_classes': 80,
               'anchor_boxes_size': [30, 61, 62, 45, 59, 119]},
-             {'layer_height': 76, 'layer_width': 76, 'prob_thresh': 0.5, 'num_classes': 80,
+             {'layer_height': 76, 'layer_width': 76, 'prob_thresh': 0.005, 'num_classes': 80,
               'anchor_boxes_size': [10, 13, 16, 30, 33, 23]}]
 
 
@@ -117,7 +116,6 @@ def _leaky_relu(input, alpha=None, name=None):
 
 
 def _upsample(input, name=None):
-    # return upsample_nearest(input, name=name, scale=2, data_format="channels_first")
     return flow.layers.upsample_2d(input, size=2, data_format='NCHW', interpolation="nearest")
 
 
@@ -225,7 +223,7 @@ def YoloPredictLayer(in_blob, origin_image_info, i, trainable):
     [out_bbox, out_probs, valid_num] = yolo_detect(bbox=position, probs=confidence, origin_image_info=origin_image_info,
                                                    image_height=608, image_width=608,
                                                    layer_height=yolo_conf[i]['layer_height'],
-                                                   layer_width=yolo_conf[i]['layer_width'], prob_thresh=0.5,
+                                                   layer_width=yolo_conf[i]['layer_width'], prob_thresh=0.005,
                                                    num_classes=80, max_out_boxes=max_out_boxes,
                                                    anchor_boxes=yolo_conf[i]['anchor_boxes_size'],
                                                    name=str(layer_name) + "yolo_detect")
