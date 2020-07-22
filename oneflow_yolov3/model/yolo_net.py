@@ -34,6 +34,7 @@ yolo_box_diff_conf = [{'image_height': image_height, 'image_width': image_width,
                        'anchor_boxes_size': anchor_boxes_size_list, 'box_mask': [0, 1, 2]}]
 
 # to confirm wh pos, gr 12.19 check with 11 ~/yolov3/predict.job
+
 yolo_conf = [{'layer_height': 19, 'layer_width': 19, 'prob_thresh': thresh, 'num_classes': 80,
               'anchor_boxes_size': [116, 90, 156, 198, 373, 326]},
              {'layer_height': 38, 'layer_width': 38, 'prob_thresh': thresh, 'num_classes': 80,
