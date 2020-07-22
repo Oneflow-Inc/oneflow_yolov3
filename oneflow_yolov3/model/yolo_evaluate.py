@@ -61,7 +61,7 @@ args = parser.parse_args()
 
 flow.config.load_library(oneflow_yolov3.lib_path())
 func_config = flow.FunctionConfig()
-func_config.default_distribute_strategy(flow.distribute.consistent_strategy())
+func_config.default_distribute_strategy(flow.scope.consistent_view())
 func_config.default_data_type(flow.float)
 if args.use_tensorrt != 0:
     func_config.use_tensorrt(True)
@@ -92,9 +92,9 @@ def yolo_user_op_eval_job(
 
 
 if __name__ == "__main__":
-    assert os.path.exists(args.model_load_dir)
-    assert os.path.exists(args.image_paths)
-    assert os.path.exists(args.label_path)
+    assert os.path.exists(args.model_load_dir) and os.path.exists(args.image_paths) and os.path.exists(args.label_path)
+
+    print('Params >> nms_thres: %.4f, conf_thres: %.4f, iou_thres: %.4f\n' %(args.nms_thres, args.conf_thres, args.iou_thres))
 
     with open(args.label_path, 'r') as f:
         names = f.read().split('\n')
@@ -121,10 +121,12 @@ if __name__ == "__main__":
         paths = path_list[i * args.batch_size:(i + 1) * args.batch_size]
         images, origin_image_info, targets = batch_image_preprocess_with_label(
             paths, args.image_height, args.image_width)
+
         yolo_pos, yolo_prob, origin_image_info = yolo_user_op_eval_job(
             images, origin_image_info).get()
         bboxes = utils.batch_postprocess_boxes_nms(
-            yolo_pos, yolo_prob, origin_image_info, args.nms_thres, args.conf_thres)
+            yolo_pos, yolo_prob, origin_image_info, args.conf_thres, args.nms_thres)
+
         for si, pred in enumerate(bboxes):
             labels = targets[targets[:, 0] == si, 1:]
             nl = len(labels)
@@ -164,11 +166,14 @@ if __name__ == "__main__":
                         continue
                     # Best iou, index between pred and targets
                     m = (pcls == tcls_tensor)
+                    m = np.nonzero(np.asarray(m))[0]
                     iou = utils.bboxes_iou(pbox, tbox[m])
                     bi = np.argmax(iou)
                     maxiou = iou[bi]
+
                     # If iou > threshold and class is correct mark as correct
-                    if maxiou > args.iou_thres:  # and pcls == tcls[bi]:
+                    # if maxiou > args.iou_thres:  # and pcls == tcls[bi]:
+                    if maxiou > args.iou_thres and m[bi] not in detected:
                         correct[i] = 1
                         detected.append(m[bi])
 

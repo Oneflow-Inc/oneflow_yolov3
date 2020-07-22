@@ -287,7 +287,6 @@ def postprocess_boxes_new(yolo_pos, yolo_prob, org_img_shape, threshold=0.3):
 
     # 4. discard some boxes with pred_problow scores
     classes = np.argmax(pred_prob, axis=-1)          # (box_num, )
-    print('classes.shape .>>>>>>>>>>>>>>>>>>>>>>>', classes.shape)
     scores = pred_prob[np.arange(len(pred_coor)), classes]
     score_mask = scores > threshold
     mask = np.logical_and(scale_mask, score_mask)    # (box_num, )
@@ -322,7 +321,7 @@ def bboxes_iou(boxes1, boxes2):
 def nms(bboxes, iou_threshold, sigma=0.3, method='nms'):
     """Non-Maximum Suppression,NMS
     :param bboxes: shape >> (box_num, 6)   six dimension: [class_id, x1, x2, y1, y2, possibility]
-    Note: soft-nms,
+    Note: soft-nms
     https://arxiv.org/pdf/1704.04503.pdf
     https://github.com/bharatsingh430/soft-nms
     """
