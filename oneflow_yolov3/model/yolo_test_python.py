@@ -38,6 +38,8 @@ parser.add_argument(
     type=int,
     default=8,
     required=False)
+parser.add_argument('--iou_thres', type=float, default=0.5,
+                    help='iou threshold required to qualify as detected')
 parser.add_argument(
     '--conf_thres',
     type=float,
@@ -169,7 +171,7 @@ if __name__ == "__main__":
                     maxiou = iou[bi]
 
                     # If iou > threshold and class is correct mark as correct
-                    if maxiou > args.nms_thres:  # and pcls == tcls[bi]:
+                    if maxiou > args.iou_thres:  # and pcls == tcls[bi]:
                         correct[i] = 1
                         detected.append(m[bi])
 
