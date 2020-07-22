@@ -92,9 +92,9 @@ def yolo_user_op_eval_job(
 
 
 if __name__ == "__main__":
-    assert os.path.exists(args.model_load_dir)
-    assert os.path.exists(args.image_paths)
-    assert os.path.exists(args.label_path)
+    assert os.path.exists(args.model_load_dir) and os.path.exists(args.image_paths) and os.path.exists(args.label_path)
+
+    print('Params >> nms_thres: %.4f, conf_thres: %.4f, iou_thres: %.4f\n' %(args.nms_thres, args.conf_thres, args.iou_thres))
 
     with open(args.label_path, 'r') as f:
         names = f.read().split('\n')
@@ -166,12 +166,14 @@ if __name__ == "__main__":
                         continue
                     # Best iou, index between pred and targets
                     m = (pcls == tcls_tensor)
+                    m = np.nonzero(np.asarray(m))[0]
                     iou = utils.bboxes_iou(pbox, tbox[m])
                     bi = np.argmax(iou)
                     maxiou = iou[bi]
 
                     # If iou > threshold and class is correct mark as correct
-                    if maxiou > args.iou_thres:  # and pcls == tcls[bi]:
+                    # if maxiou > args.iou_thres:  # and pcls == tcls[bi]:
+                    if maxiou > args.iou_thres and m[bi] not in detected:
                         correct[i] = 1
                         detected.append(m[bi])
 
