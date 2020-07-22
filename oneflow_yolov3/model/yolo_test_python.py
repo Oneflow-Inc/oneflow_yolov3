@@ -166,12 +166,13 @@ if __name__ == "__main__":
                         continue
                     # Best iou, index between pred and targets
                     m = (pcls == tcls_tensor)
+                    m = np.nonzero(np.asarray(m))[0]
                     iou = utils.bboxes_iou(pbox, tbox[m])
                     bi = np.argmax(iou)
                     maxiou = iou[bi]
 
                     # If iou > threshold and class is correct mark as correct
-                    if maxiou > args.iou_thres:  # and pcls == tcls[bi]:
+                    if maxiou > args.iou_thres and m[bi] not in detected:  # and pcls == tcls[bi]:
                         correct[i] = 1
                         detected.append(m[bi])
 
