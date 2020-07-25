@@ -1,5 +1,5 @@
-# model_dir=yolov3_pretrained
-model_dir=of_model/yolov3_model_python/  #  yolov3_snapshot_50
+# Set up model dir,e.g.of_yolov3_model(mAP: 56.5%);
+model_dir=of_model/of_yolov3_model/
 export ONEFLOW_DEBUG_MODE=""
 
 # gdb --args \
@@ -10,4 +10,4 @@ python3 oneflow_yolov3/model/yolo_evaluate.py \
 --nms_thres=0.5 \
 --conf_thres=0.001 \
 --iou_thres=0.5 \
---image_paths=data/COCO/5k.txt  # 5k_2017.txt
+--image_paths=data/COCO/5k.txt

@@ -118,7 +118,7 @@ def _leaky_relu(input, alpha=None, name=None):
 
 
 def _upsample(input, name=None):
-    return flow.layers.upsample_2d(input, size=2, data_format='NCHW', interpolation="nearest")
+    return flow.layers.upsample_2d(input, size=2, data_format='NCHW', interpolation="nearest", name=name)
 
 
 def conv_unit(data, num_filter=1, kernel=(1, 1), stride=(1, 1), pad="same", data_format="NCHW", use_bias=False,
@@ -338,8 +338,8 @@ def YoloNetBody(in_blob, gt_bbox_blob=None, gt_label_blob=None, gt_valid_num_blo
     if trainable == False:
         yolo_positions = flow.concat(yolo_pos_result, axis=1, name="concat_pos")  # (b, n_boxes, 4)
         yolo_probs = flow.concat(yolo_prob_result, axis=1)  # (b, n_boxes, 81)
-        print(yolo_positions.shape)
-        print(yolo_probs.shape)
+        # print(yolo_positions.shape)
+        # print(yolo_probs.shape)
         if nms:
             yolo_probs_transpose = flow.transpose(yolo_probs, perm=[0, 2, 1])  # (b, 81, n_boxes)
             pre_nms_top_k_inds = flow.math.top_k(yolo_probs_transpose,
@@ -369,7 +369,7 @@ def YoloNetBody(in_blob, gt_bbox_blob=None, gt_label_blob=None, gt_valid_num_blo
 
 
 def YoloPredictNet(data, origin_image_info, trainable=False):
-    print("nms:", nms)
+    # print("nms:", nms)
     global layer_number
     # data = flow.transpose(data, perm=[0, 3, 1, 2])
     blob = conv_unit(data, num_filter=32, kernel=[3, 3], stride=[1, 1], pad="same", data_format="NCHW", use_bias=False,

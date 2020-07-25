@@ -1,5 +1,5 @@
-model_dir=of_model/yolov3_model_python/
-# model_dir=of_model/yolov3_snapshot_1/
+# Set up model dir,e.g.of_yolov3_model; yolov3_snapshot_50
+model_dir=of_model/of_yolov3_model/
 export ONEFLOW_DEBUG_MODE=""
 
 python3 oneflow_yolov3/model/predict_with_print_box.py \
