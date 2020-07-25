@@ -1,4 +1,4 @@
-model_dir=of_model/yolov3_model_python/
+model_dir=of_model/of_yolov3_model/
 image_list_file=data/with_dir_data_names
 label_2_name_file=data/coco.names
 export ONEFLOW_DEBUG_MODE=""
