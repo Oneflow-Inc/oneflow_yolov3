@@ -103,7 +103,7 @@ func_config.train.primary_lr(args.base_lr)
 func_config.train.model_update_conf(dict(naive_conf={}))
 
 
-@flow.global_function(func_config)
+@flow.global_function("train", func_config)
 def yolo_train_job():
     images, ground_truth, gt_valid_num = yolo_train_decoder(args.batch_size, args.image_height, args.image_width,
                                                             args.classes, args.num_boxes, args.hue, args.jitter, args.saturation, args.exposure, args.dataset_dir, "yolo")
