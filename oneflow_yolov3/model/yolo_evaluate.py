@@ -67,7 +67,7 @@ if args.use_tensorrt != 0:
 # func_config.tensorrt.use_fp16()
 
 
-@flow.global_function(func_config)
+@flow.global_function("predict", func_config)
 def yolo_user_op_eval_job(images:tp.Numpy.Placeholder((args.batch_size, 3, args.image_height, args.image_width), dtype=flow.float),
                           origin_image_info:tp.Numpy.Placeholder((args.batch_size, 2), dtype=flow.int32)
                           ):
