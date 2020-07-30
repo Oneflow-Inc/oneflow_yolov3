@@ -68,10 +68,8 @@ sh yolo_predict_python_data_preprocess.sh
 运行脚本后，将在data/result下生成检测后带bbox标记框的图片：
 
 <div align="center">
-    <img src="data/detected_000004.jpg" align='center'/>
+    <img src="data/detected_kite.jpg" align='center'/>
 </div>
-
-![detected_kite](data/detected_kite.jpg)
 
 参数说明
 
