@@ -87,7 +87,7 @@ class YoloPredictDecoderKernel final : public oneflow::user_op::OpKernel {
             + i * origin_image_info_blob->shape().Count(1)) = im.h;
           *(origin_image_info_blob->mut_dptr<int32_t>()
             + i * origin_image_info_blob->shape().Count(1) + 1) = im.w;
-          memcpy(out_blob->mut_dptr() + i * out_blob->shape().Count(1) * sizeof(float), sized.data,
+          memcpy(out_blob->mut_dptr<char>() + i * out_blob->shape().Count(1) * sizeof(float), sized.data,
                  out_blob->shape().Count(1) * sizeof(float));
           free_image(im);
           free_image(sized);

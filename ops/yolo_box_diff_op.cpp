@@ -28,8 +28,6 @@ REGISTER_USER_OP("yolo_box_diff")
       const user_op::TensorDesc* gt_boxes_desc = ctx->TensorDesc4ArgNameAndIndex("gt_boxes", 0);
       // input: gt_labels (n, g) int32_t
       const user_op::TensorDesc* gt_labels_desc = ctx->TensorDesc4ArgNameAndIndex("gt_labels", 0);
-      const user_op::TensorDesc* gt_valid_num_desc =
-          ctx->TensorDesc4ArgNameAndIndex("gt_valid_num", 0);
 
       const int64_t num_images = bbox_desc->shape().At(0);
       CHECK_EQ_OR_RETURN(num_images, gt_boxes_desc->shape().At(0));
