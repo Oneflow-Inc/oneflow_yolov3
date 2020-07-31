@@ -1,4 +1,5 @@
-#!/bin/bash
+#!/usr/bin/env bash
+
 # # Download Images
 # wget -c https://pjreddie.com/media/files/train2014.zip
 # wget -c https://pjreddie.com/media/files/val2014.zip

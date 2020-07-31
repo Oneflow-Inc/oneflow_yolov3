@@ -1,3 +1,5 @@
+#!/usr/bin/env bash
+
 set -x
 OF_CFLAGS=( $(python3 -c 'import oneflow; print(" ".join(oneflow.sysconfig.get_compile_flags()))') )
 OF_LFLAGS=( $(python3 -c 'import oneflow; print(" ".join(oneflow.sysconfig.get_link_flags()))') )
