@@ -31,10 +31,10 @@ class DecodeOpKernelState final : public user_op::OpKernelState {
 REGISTER_USER_OP("yolo_predict_decoder")
     .Output("out")
     .Output("origin_image_info")
-    .Attr("batch_size", UserOpAttrType::kAtInt32)
-    .Attr("image_height", UserOpAttrType::kAtInt32)
-    .Attr("image_width", UserOpAttrType::kAtInt32)
-    .Attr("image_paths", UserOpAttrType::kAtListString)
+    .Attr<int32_t>("batch_size")
+    .Attr<int32_t>("image_height")
+    .Attr<int32_t>("image_width")
+    .Attr<std::vector<std::string>>("image_paths")
     .SetTensorDescInferFn([](user_op::InferContext* ctx) -> Maybe<void> {
       Shape* out_shape = ctx->Shape4ArgNameAndIndex("out", 0);
       Shape* origin_image_info_shape = ctx->Shape4ArgNameAndIndex("origin_image_info", 0);

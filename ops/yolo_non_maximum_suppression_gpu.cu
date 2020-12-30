@@ -140,7 +140,7 @@ class YoloNmsGpuKernel final : public user_op::OpKernel {
 #define REGISTER_YOLO_NMS_GPU_KERNEL(dtype)                                              \
   REGISTER_USER_KERNEL("yolo_nms")                                                       \
       .SetCreateFn<YoloNmsGpuKernel<dtype>>()                                            \
-      .SetIsMatchedHob((user_op::HobDeviceType() == DeviceType::kGPU)                    \
+      .SetIsMatchedHob((user_op::HobDeviceTag() == DeviceType::kGPU)                    \
                        & (user_op::HobDataType("out", 0) == DataType::kInt8)             \
                        & (user_op::HobDataType("bbox", 0) == GetDataType<dtype>::value)) \
       .SetInferTmpSizeFn([](user_op::InferContext* ctx) {                                \

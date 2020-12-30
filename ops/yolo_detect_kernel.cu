@@ -142,8 +142,7 @@ class YoloDetectGpuKernel final : public user_op::OpKernel {
     Memcpy<DeviceType::kGPU>(
         ctx->device_ctx(), reinterpret_cast<void*>(buf_manager.AnchorBoxesTmpPtr()),
         reinterpret_cast<void*>(anchor_boxes.data()),
-        buf_manager.AnchorBoxesTmpElemCnt() * sizeof(int32_t),
-        cudaMemcpyHostToDevice);
+        buf_manager.AnchorBoxesTmpElemCnt() * sizeof(int32_t));
 
     FOR_RANGE(int32_t, im_index, 0, bbox->shape().At(0)) {
       const T* probs_ptr = probs->dptr<T>() + im_index * probs->shape().Count(1);
@@ -175,7 +174,7 @@ class YoloDetectGpuKernel final : public user_op::OpKernel {
 #define REGISTER_YOLO_DETECT_GPU_KERNEL(dtype)                                                   \
   REGISTER_USER_KERNEL("yolo_detect")                                                            \
       .SetCreateFn<YoloDetectGpuKernel<dtype>>()                                                 \
-      .SetIsMatchedHob((user_op::HobDeviceType() == DeviceType::kGPU)                            \
+      .SetIsMatchedHob((user_op::HobDeviceTag() == DeviceType::kGPU)                            \
                        & (user_op::HobDataType("bbox", 0) == GetDataType<dtype>::value)          \
                        & (user_op::HobDataType("probs", 0) == GetDataType<dtype>::value))        \
       .SetInferTmpSizeFn([](user_op::InferContext* ctx) {                                        \

@@ -6,9 +6,9 @@ REGISTER_USER_OP("yolo_nms")
     .Input("bbox")
     .Input("probs")
     .Output("out")
-    .Attr("iou_threshold", UserOpAttrType::kAtFloat)
-    .Attr("keep_n", UserOpAttrType::kAtInt32)
-    .Attr("batch_dims", UserOpAttrType::kAtInt32)
+    .Attr<float>("iou_threshold")
+    .Attr<int32_t>("keep_n")
+    .Attr<int32_t>("batch_dims")
     .SetTensorDescInferFn([](user_op::InferContext* ctx) -> Maybe<void> {
       Shape* bbox_shape = ctx->Shape4ArgNameAndIndex("bbox", 0);
       DimVector dim_vec(bbox_shape->NumAxes() - 1);
