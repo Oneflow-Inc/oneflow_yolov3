@@ -11,7 +11,7 @@ REGISTER_USER_OP("yolo_prob_loss")
     .Input("valid_num")
     .Output("bbox_objness_out")
     .Output("bbox_clsprob_out")
-    .Attr("num_classes", UserOpAttrType::kAtInt32)
+    .Attr<int32_t>("num_classes")
     .SetTensorDescInferFn([](user_op::InferContext* ctx) -> Maybe<void> {
       // input: bbox_objness : (n, r, 1)  r = h*w*3
       const user_op::TensorDesc* bbox_objness_desc =

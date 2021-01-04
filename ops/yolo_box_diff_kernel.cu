@@ -319,13 +319,11 @@ class YoloBoxDiffKernel final : public user_op::OpKernel {
     Memcpy<DeviceType::kGPU>(
         ctx->device_ctx(), reinterpret_cast<void*>(buf_manager.AnchorBoxesTmpPtr()),
         reinterpret_cast<void*>(anchor_boxes.data()),
-        buf_manager.AnchorBoxesTmpElemCnt() * sizeof(int32_t),
-        cudaMemcpyHostToDevice);
+        buf_manager.AnchorBoxesTmpElemCnt() * sizeof(int32_t));
     Memcpy<DeviceType::kGPU>(ctx->device_ctx(),
                              reinterpret_cast<void*>(buf_manager.BoxMaskTmpPtr()),
                              reinterpret_cast<void*>(box_mask.data()),
-                             buf_manager.BoxMaskTmpElemCnt() * sizeof(int32_t),
-                             cudaMemcpyHostToDevice);
+                             buf_manager.BoxMaskTmpElemCnt() * sizeof(int32_t));
     Memset<DeviceType::kGPU>(ctx->device_ctx(), statistics_info->mut_dptr<float>(), 0, statistics_info->shape().elem_cnt() * sizeof(float));
 
     FOR_RANGE(int32_t, im_index, 0, bbox->shape().At(0)) {
@@ -380,7 +378,7 @@ class YoloBoxDiffKernel final : public user_op::OpKernel {
 #define REGISTER_YOLO_BOX_DIFF_GPU_KERNEL(dtype)                                                  \
   REGISTER_USER_KERNEL("yolo_box_diff")                                                           \
       .SetCreateFn<YoloBoxDiffKernel<dtype>>()                                                    \
-      .SetIsMatchedHob((user_op::HobDeviceType() == DeviceType::kGPU)                             \
+      .SetIsMatchedHob((user_op::HobDeviceTag() == DeviceType::kGPU)                             \
                        & (user_op::HobDataType("bbox", 0) == GetDataType<dtype>::value)           \
                        & (user_op::HobDataType("gt_boxes", 0) == GetDataType<dtype>::value))      \
       .SetInferTmpSizeFn([](user_op::InferContext* ctx) {                                         \

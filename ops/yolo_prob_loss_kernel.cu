@@ -114,7 +114,7 @@ class YoloProbLossKernel final : public user_op::OpKernel {
 #define REGISTER_YOLO_PROB_LOSS_KERNEL(dtype)                                                    \
   REGISTER_USER_KERNEL("yolo_prob_loss")                                                         \
       .SetCreateFn<YoloProbLossKernel<dtype>>()                                                  \
-      .SetIsMatchedHob((user_op::HobDeviceType() == DeviceType::kGPU)                            \
+      .SetIsMatchedHob((user_op::HobDeviceTag() == DeviceType::kGPU)                            \
                        & (user_op::HobDataType("bbox_objness", 0) == GetDataType<dtype>::value)  \
                        & (user_op::HobDataType("bbox_clsprob", 0) == GetDataType<dtype>::value)) \
       .SetInferTmpSizeFn([](const oneflow::user_op::InferContext*) { return 0; });
