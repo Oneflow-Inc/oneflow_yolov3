@@ -15,13 +15,18 @@ execute_process (
     OUTPUT_VARIABLE ONEFLOW_LIB_PATH
 )
 
+execute_process (
+  COMMAND bash -c "python3 -c 'import oneflow; print(\" \".join(oneflow.sysconfig.get_link_flags()), end=\"\")'"
+    OUTPUT_VARIABLE ONEFLOW_LINK_FLAGS
+)
+
 find_package(CUDA REQUIRED)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS 1)
 set(CUDA_HOST_COMPILER g++)
 set(CUDA_SEPARABLE_COMPILATION ON)
 set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS} -O3 -Xcompiler -Wextra --disable-warnings -DWITH_CUDA)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${ONEFLOW_COMPILE_FLAGS} -O3 -g -std=c++11 -Wall -Wno-sign-compare -Wno-unused-function -fPIC")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${ONEFLOW_COMPILE_FLAGS} ${ONEFLOW_LINK_FLAGS} -O3 -g -std=c++11 -Wall -Wno-sign-compare -Wno-unused-function -fPIC")
 set(CUDA_VERBOSE_BUILD OFF)
 
 file(GLOB_RECURSE SRC "*.cpp")
@@ -35,7 +40,6 @@ list(APPEND SRC ${CUDAHDR})
 cuda_add_library(${PROJECT_NAME} SHARED ${SRC})
 set_target_properties(${PROJECT_NAME} PROPERTIES LIBRARY_OUTPUT_DIRECTORY ../../oneflow_yolov3)
 target_include_directories(${PROJECT_NAME} PUBLIC ${ONEFLOW_INCLUDE_PATH})
-target_link_libraries(${PROJECT_NAME} ${ONEFLOW_LIB_PATH}/_oneflow_internal.so)
 
 target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_SOURCE_DIR}/ops/darknet_dependencies/include)
 target_link_libraries(${PROJECT_NAME} ${CMAKE_SOURCE_DIR}/third_party/darknet/libdarknet.so)
