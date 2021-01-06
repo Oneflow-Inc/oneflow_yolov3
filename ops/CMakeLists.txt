@@ -26,7 +26,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS 1)
 set(CUDA_HOST_COMPILER g++)
 set(CUDA_SEPARABLE_COMPILATION ON)
 set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS} -O3 -Xcompiler -Wextra --disable-warnings -DWITH_CUDA)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${ONEFLOW_COMPILE_FLAGS} ${ONEFLOW_LINK_FLAGS} -O3 -g -std=c++11 -Wall -Wno-sign-compare -Wno-unused-function -fPIC -Wl,-rpath=${ONEFLOW_LIB_PATH}")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${ONEFLOW_COMPILE_FLAGS} ${ONEFLOW_LINK_FLAGS} -O3 -g -std=c++11 -Wall -Wno-sign-compare -Wno-unused-function -fPIC")
 set(CUDA_VERBOSE_BUILD OFF)
 
 file(GLOB_RECURSE SRC "*.cpp")
@@ -44,6 +44,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC ${ONEFLOW_INCLUDE_PATH})
 target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_SOURCE_DIR}/ops/darknet_dependencies/include)
 target_link_libraries(${PROJECT_NAME} ${CMAKE_SOURCE_DIR}/third_party/darknet/libdarknet.so)
 
+set_target_properties(${PROJECT_NAME} PROPERTIES BUILD_RPATH ${ONEFLOW_LIB_PATH})
 
 export(PACKAGE ${PROJECT_NAME})
 export(TARGETS ${PROJECT_NAME}
